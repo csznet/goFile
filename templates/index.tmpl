@@ -1,0 +1,86 @@
+<html>
+{{template "public/header" .}}
+<body>
+<h2>goFile</h2>
+{{if .path}}
+<p>当前目录：{{.path}}</p>
+{{end}}
+{{if .prev}}
+<a href="{{.prev}}">返回上一级</a>
+{{end}}
+<ul>
+    {{if .info.Dirs}}
+    <h3>目录列表</h3>
+    {{$path := .path}}
+    {{range $item := .info.Dirs}}
+    <li class="c-b">
+        <a href="/d/{{$path}}{{.DirName}}">{{$item.DirName}}</a>
+<!--        <span class="f-r">删除</span>-->
+    </li>
+    {{end}}
+    {{end}}
+    {{if .info.Files}}
+    <h3>文件列表</h3>
+    {{range $item := .info.Files}}
+    <li class="c-b">
+        <a target="_blank" href="/view/{{.FilePath}}">{{$item.FileName}}</a>
+        <span class="f-r"><a onclick="rm({{.FilePath}})">删除</a></span>
+        {{if .IsZip}}
+        <span class="f-r"><a onclick="unzip({{.FilePath}})">解压</a></span>
+        {{end}}
+    </li>
+    {{end}}
+    {{end}}
+</ul>
+<h3>上传文件到此目录</h3>
+<form action="/do/upload/{{.path}}" method="post" enctype="multipart/form-data">
+    <input type="file" name="file" >
+    <input type="submit" value="提交">
+</form>
+<h3>远程下载文件到此目录</h3>
+<form action="/get" method="post" action="application/x-www-form-urlencoded">
+    <label>URL:</label>
+    <input name="url"/>
+    <input name="path" value="{{.path}}" hidden />
+
+    <input type="submit" value="提交队列">
+</form>
+<script src="https://s3.pstatp.com/cdn/expire-1-M/jquery/3.2.1/jquery.min.js"></script>
+<script>
+    function unzip($path){
+        if (confirm("你确定要解压"+$path+"吗？")){
+            $.post("/do/unzip",{path:$path},function(data,status){
+                if(status == "success"){
+                    console.log(data)
+                    if(data.stat){
+                        if(confirm("解压成功，点击确认刷新")){
+                            location.reload();
+                    }}else{
+                        alert("解压失败")
+                    }
+                }else{
+                    alert("请求失败");
+                }
+            });
+        }
+    }
+    function rm($path){
+        if (confirm("你确定要删除"+$path+"吗？")){
+            $.post("/do/rm",{path:$path},function(data,status){
+                if(status == "success"){
+                    console.log(data)
+                    if(data.stat){
+                        if(confirm("删除成功，点击确认刷新")){
+                            location.reload();
+                        }}else{
+                        alert("删除失败")
+                    }
+                }else{
+                    alert("请求失败");
+                }
+            });
+        }
+    }
+</script>
+</body>
+</html>
