@@ -77,7 +77,8 @@ func web() {
 	})
 	r.POST("/do/rm", func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		err := os.Remove(goFile + c.PostForm("path"))
+		path := goFile + c.PostForm("path")
+		err := os.RemoveAll(path)
 		Stat := true
 		if err != nil {
 			Stat = true

@@ -15,7 +15,7 @@
     {{range $item := .info.Dirs}}
     <li class="c-b">
         <a href="/d/{{$path}}{{.DirName}}">{{$item.DirName}}</a>
-<!--        <span class="f-r">删除</span>-->
+        <span class="f-r"><a onclick="rm({{.DirPath}})">删除</a></span>
     </li>
     {{end}}
     {{end}}
