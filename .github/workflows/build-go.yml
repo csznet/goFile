@@ -1,3 +1,4 @@
+name: Release Go
 on:
   workflow_dispatch:
   release:
