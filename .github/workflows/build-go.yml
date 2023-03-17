@@ -26,3 +26,8 @@ jobs:
           goversion: go.mod # 可以指定编译使用的 Golang 版本
           binary_name: "goFile" # 可以指定二进制文件的名称
           extra_files: templates # 需要包含的额外文件
+permissions:
+  id-token: write
+  contents: read
+  issues: write
+  pull-requests: write
