@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-var goFile = "./"
+var goFile, goFilePort string
 
 func web() {
 	r := gin.Default()
@@ -112,7 +112,7 @@ func web() {
 		}
 	})
 	//监听端口默认为8080
-	r.Run("127.0.0.1:8089")
+	r.Run("0.0.0.0:" + goFilePort)
 }
 func getFile(url, path string) bool {
 	OutPath := pathOutConv(path)
@@ -238,6 +238,7 @@ func getFiles(path string) conf.Info {
 }
 func init() {
 	flag.StringVar(&goFile, "path", "./", "goFile path")
+	flag.StringVar(&goFilePort, "port", "8089", "goFile web port")
 	if goFile != "./" {
 		goFile = strings.Replace(goFile, "./", "", 1)
 	}
