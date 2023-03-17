@@ -1,6 +1,6 @@
 on:
   workflow_dispatch:
-  release_tag:
+  release:
     types: [created,published] # 表示在创建新的 Release 时触发
 
 jobs:
