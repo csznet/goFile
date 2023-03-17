@@ -26,3 +26,8 @@ jobs:
             oj_darwin_amd64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+permissions:
+  id-token: write
+  contents: read
+  issues: write
+  pull-requests: write
