@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>Editor</title>
+    <style type="text/css" media="screen">
+        body {
+            overflow: hidden;
+        }
+
+        #editor {
+            margin: 0;
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+        }
+        .bn{z-index: 9999;
+            float: right;
+            margin-right: 50px;
+            position: -webkit-sticky;
+            background-color: white;
+        }
+    </style>
+</head>
+<body>
+<div class="bn">
+<buton onclick="save()">保存</buton>
+</div>
+<pre id="editor">
+{{.data}}
+</pre>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.16.0/ace.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="https://s3.pstatp.com/cdn/expire-1-M/jquery/3.2.1/jquery.min.js"></script>
+<script>
+    var editor = ace.edit("editor");
+    editor.setTheme("ace/theme/twilight");
+    editor.session.setMode("ace/mode/javascript");
+    function save(index){
+        if (confirm("确认保存吗？")){
+            $.post("/do/save",{path:'{{.path}}',data:editor.getValue()},function(data, status){
+                if(status == "success"){
+                    console.log(data)
+                    if(data.stat){
+                        if(confirm("保存，点击确认刷新")){
+                            var temp = document.createElement("form"); //创建form表单
+                            temp.action = "/edite";
+                            temp.method = "post";
+                            temp.style.display = "none";//表单样式为隐藏
+                            var opt =document.createElement("input");  //添加input标签
+                            opt.type="text";   //类型为text
+                            opt.name = "path";    //设置name属性
+                            opt.value = '{{.path}}';   //设置value属性
+                            temp.appendChild(opt);
+                            document.body.appendChild(temp);
+                            temp.submit();
+                            return temp;
+                        }}else{
+                        alert("保存失败")
+                    }
+                }else{
+                    alert("请求失败");
+                }
+            });
+        }
+    }
+</script>
+
+</body>
+</html>

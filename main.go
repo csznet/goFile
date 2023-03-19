@@ -2,6 +2,7 @@ package main
 
 import (
 	"archive/zip"
+	"bufio"
 	"flag"
 	"github.com/gin-gonic/gin"
 	"goFile/conf"
@@ -73,6 +74,31 @@ func web() {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		c.JSON(http.StatusOK, gin.H{
 			"stat": Unzip(c.PostForm("path")),
+		})
+	})
+	//保存代码
+	r.POST("/do/save/", func(c *gin.Context) {
+		file, _ := os.OpenFile(c.PostForm("path"), os.O_RDWR, 0644)
+		writer := bufio.NewWriter(file)
+		_, err := writer.WriteString(c.PostForm("data"))
+		writer.Flush()
+		defer file.Close()
+		ok := true
+		if err != nil {
+			ok = false
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"stat": ok,
+		})
+	})
+	//编辑代码
+	r.POST("/edite/", func(c *gin.Context) {
+		file, _ := os.Open(c.PostForm("path"))
+		data, _ := io.ReadAll(file)
+		defer file.Close()
+		c.HTML(http.StatusOK, "editor.tmpl", gin.H{
+			"data": string(data),
+			"path": c.PostForm("path"),
 		})
 	})
 	r.POST("/do/rm", func(c *gin.Context) {

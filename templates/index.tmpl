@@ -24,6 +24,7 @@
     {{range $item := .info.Files}}
     <li class="c-b">
         <a target="_blank" href="/view/{{.FilePath}}">{{$item.FileName}}</a>
+        <span class="f-r"><a onclick="edite({{.FilePath}})">编辑</a></span>
         <span class="f-r"><a onclick="rm({{.FilePath}})">删除</a></span>
         {{if .IsZip}}
         <span class="f-r"><a onclick="unzip({{.FilePath}})">解压</a></span>
@@ -80,6 +81,21 @@
                 }
             });
         }
+    }
+    function edite(path) {
+        var temp = document.createElement("form"); //创建form表单
+        temp.action = "/edite";
+        temp.method = "post";
+        temp.target = "_blank"
+        temp.style.display = "none";//表单样式为隐藏
+        var opt =document.createElement("input");  //添加input标签
+        opt.type="text";   //类型为text
+        opt.name = "path";    //设置name属性
+        opt.value = path;   //设置value属性
+        temp.appendChild(opt);
+        document.body.appendChild(temp);
+        temp.submit();
+        return temp;
     }
 </script>
 </body>
