@@ -14,13 +14,14 @@ easy file manager
  - 上传文件
  - 删除文件&文件夹
  - 解压ZIP文件
+ - 在线网页编辑
 
 下载
 ===
-    wget https://github.com/csznet/goFile/releases/download/v1.0.5/goFile-v1.0.5-linux-amd64.tar.gz
+    wget https://github.com/csznet/goFile/releases/download/v1.0.6/goFile-v1.0.6-linux-amd64.tar.gz
 解压
 ===
-    tar -xvzf goFile-v1.0.5-linux-amd64.tar.gz
+    tar -xvzf goFile-v1.0.6-linux-amd64.tar.gz
 运行
 ===
     ./goFile
