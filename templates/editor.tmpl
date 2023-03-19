@@ -38,7 +38,7 @@
 <script>
     var editor = ace.edit("editor");
     editor.setTheme("ace/theme/twilight");
-    editor.session.setMode("ace/mode/javascript");
+    // editor.session.setMode("ace/mode/javascript");
     function save(index){
         if (confirm("确认保存吗？")){
             $.post("/do/save",{path:'{{.path}}',data:editor.getValue()},function(data, status){

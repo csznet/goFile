@@ -18,10 +18,10 @@ easy file manager
 
 下载
 ===
-    wget https://github.com/csznet/goFile/releases/download/v1.0.6/goFile-v1.0.6-linux-amd64.tar.gz
+    wget https://github.com/csznet/goFile/releases/download/v1.0.7/goFile-v1.0.7-linux-amd64.tar.gz
 解压
 ===
-    tar -xvzf goFile-v1.0.6-linux-amd64.tar.gz
+    tar -xvzf goFile-v1.0.7-linux-amd64.tar.gz
 运行
 ===
     ./goFile
