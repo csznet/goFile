@@ -16,6 +16,7 @@ import (
 
 var goFile, goFilePort string
 
+// Web Serve
 func web() {
 	r := gin.Default()
 	r.LoadHTMLGlob("templates/*")
@@ -141,6 +142,8 @@ func web() {
 	//监听端口默认为8080
 	r.Run("0.0.0.0:" + goFilePort)
 }
+
+// 远程下载
 func getFile(url, path string) bool {
 	OutPath := pathOutConv(path)
 	// Get the data
@@ -164,6 +167,8 @@ func getFile(url, path string) bool {
 	}
 	return true
 }
+
+// 保存目录转换
 func pathOutConv(path string) string {
 	path = goFile + path
 	fileSplit := strings.Split(path, "/")
@@ -171,6 +176,8 @@ func pathOutConv(path string) string {
 	OutPath := strings.TrimSuffix(path, fileName)
 	return OutPath
 }
+
+// Unzip 解压zip
 func Unzip(src string) bool {
 	OutPath := pathOutConv(src)
 	src = goFile + src
@@ -215,6 +222,8 @@ func Exists(path string) bool {
 	}
 	return true
 }
+
+// 判断是否在列表中
 func in(target string, strArray []string) bool {
 	sort.Strings(strArray)
 	index := sort.SearchStrings(strArray, target)
@@ -224,6 +233,8 @@ func in(target string, strArray []string) bool {
 	}
 	return false
 }
+
+// 获取文件列表
 func getFiles(path string) conf.Info {
 	getFile, _ := filepath.Glob(path)
 	var info conf.Info
