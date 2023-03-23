@@ -16,12 +16,12 @@ easy file manager
  - 解压ZIP文件
  - 在线网页编辑
 
-下载
+一键脚本
 ===
-    wget https://github.com/csznet/goFile/releases/download/v1.0.7/goFile-v1.0.7-linux-amd64.tar.gz
-解压
-===
-    tar -xvzf goFile-v1.0.7-linux-amd64.tar.gz
+
+    bash <(curl -s https://raw.githubusercontent.com/csznet/goFile/main/goFile.sh)
+
+
 运行
 ===
     ./goFile
