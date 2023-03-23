@@ -43,7 +43,6 @@
         if (confirm("确认保存吗？")){
             $.post("/do/save",{path:'{{.path}}',data:editor.getValue()},function(data, status){
                 if(status == "success"){
-                    console.log(data)
                     if(data.stat){
                         if(confirm("保存，点击确认刷新")){
                             var temp = document.createElement("form"); //创建form表单

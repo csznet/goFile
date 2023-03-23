@@ -2,13 +2,13 @@ package main
 
 import (
 	"archive/zip"
-	"bufio"
 	"flag"
 	"github.com/gin-gonic/gin"
 	"goFile/conf"
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -71,21 +71,35 @@ func web() {
 			"url":   url,
 		})
 	})
+	//解压文件
 	r.POST("/do/unzip", func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.JSON(http.StatusOK, gin.H{
-			"stat": Unzip(c.PostForm("path")),
-		})
+		path := c.PostForm("path")
+		pathSplit := strings.Split(path, ".")
+		fileType := pathSplit[len(pathSplit)-1]
+		ok := false
+		switch fileType {
+		case "zip":
+			ok = Unzip(path)
+		case "gz":
+			cmd := exec.Command("tar", "-zxvf", path)
+			err := cmd.Run()
+			if err == nil {
+				ok = true
+			}
+		}
+		c.JSON(http.StatusOK, gin.H{"stat": ok})
 	})
+
 	//保存代码
 	r.POST("/do/save/", func(c *gin.Context) {
-		file, _ := os.OpenFile(c.PostForm("path"), os.O_RDWR, 0644)
-		writer := bufio.NewWriter(file)
-		_, err := writer.WriteString(c.PostForm("data"))
-		writer.Flush()
-		defer file.Close()
+		file, err := os.OpenFile(c.PostForm("path"), os.O_WRONLY|os.O_TRUNC, 0644)
 		ok := true
 		if err != nil {
+			ok = false
+		}
+		_, err = file.WriteString(c.PostForm("data"))
+		defer file.Close()
+		if err != nil && ok {
 			ok = false
 		}
 		c.JSON(http.StatusOK, gin.H{
@@ -238,7 +252,7 @@ func in(target string, strArray []string) bool {
 func getFiles(path string) conf.Info {
 	getFile, _ := filepath.Glob(path)
 	var info conf.Info
-	ZipList := []string{"zip"}
+	ZipList := []string{"zip", "gz"}
 	for i := 0; i < len(getFile); i++ {
 		im := getFile[i]
 		if Exists(im) {
