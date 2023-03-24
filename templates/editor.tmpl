@@ -38,10 +38,75 @@
 <script>
     var editor = ace.edit("editor");
     editor.setTheme("ace/theme/twilight");
-    // editor.session.setMode("ace/mode/javascript");
+    var curPath = "{{.path}}";
+    var extension = curPath.split(".").pop();
+    var types = {
+        "html": "html",
+        "tmpl": "html",
+        "htm": "html",
+        "xml": "xml",
+        "xhtml": "xml",
+        "svg": "svg",
+        "css": "css",
+        "scss": "scss",
+        "sass": "sass",
+        "less": "less",
+        "js": "javascript",
+        "ts": "typescript",
+        "jsx": "jsx",
+        "tsx": "tsx",
+        "coffee": "coffee",
+        "json": "json",
+        "md": "markdown",
+        "markdown": "markdown",
+        "txt": "text",
+        "bat": "batchfile",
+        "sh": "sh",
+        "bash": "sh",
+        "ps1": "powershell",
+        "psm1": "powershell",
+        "psd1": "powershell",
+        "go": "golang",
+        "java": "java",
+        "c": "c_cpp",
+        "cpp": "c_cpp",
+        "cxx": "c_cpp",
+        "cc": "c_cpp",
+        "h": "c_cpp",
+        "hpp": "c_cpp",
+        "hxx": "c_cpp",
+        "hh": "c_cpp",
+        "php": "php",
+        "py": "python",
+        "rb": "ruby",
+        "swift": "swift",
+        "vb": "vbscript",
+        "vbs": "vbscript",
+        "sql": "sql",
+        "yaml": "yaml",
+        "yml": "yaml",
+        "ini": "ini",
+        "conf": "ini",
+        "cfg": "ini",
+        "log": "log",
+        "bat": "batchfile",
+        "cmd": "batchfile",
+        "asp": "asp",
+        "aspx": "asp",
+        "jsp": "jsp",
+        "ejs": "ejs",
+        "pug": "jade",
+        "jade": "jade"
+    };
+    if (types.hasOwnProperty(extension)) {
+        var ext = types[extension];
+        editor.session.setMode("ace/mode/"+ext);
+    }else{
+        editor.session.setMode("ace/mode/text");
+    }
     function save(index){
         if (confirm("确认保存吗？")){
-            $.post("/do/save",{path:'{{.path}}',data:editor.getValue()},function(data, status){
+            $.post("/do/save",{path:curPath,data:editor.getValue()},function(data, status){
                 if(status == "success"){
                     if(data.stat){
                         if(confirm("保存，点击确认刷新")){
