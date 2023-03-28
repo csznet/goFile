@@ -97,7 +97,11 @@ func web() {
 		if err != nil {
 			ok = false
 		}
-		_, err = file.WriteString(c.PostForm("data"))
+		data := c.PostForm("data")
+		if len(data) > 0 && data[len(data)-1] == '\n' {
+			data = data[:len(data)-1] //去掉新行
+		}
+		_, err = file.WriteString(data)
 		defer file.Close()
 		if err != nil && ok {
 			ok = false

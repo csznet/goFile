@@ -38,6 +38,7 @@
 <script>
     var editor = ace.edit("editor");
     editor.setTheme("ace/theme/twilight");
+    var moData = editor.getValue();
     var curPath = "{{.path}}";
     var extension = curPath.split(".").pop();
     var types = {
@@ -104,7 +105,25 @@
     }else{
         editor.session.setMode("ace/mode/text");
     }
+    document.addEventListener('keydown', function(event) {
+        const userAgent = navigator.userAgent;
+        if ((userAgent.indexOf('Mac') !== -1 ? event.metaKey : event.ctrlKey) && event.key === 's') {
+            event.preventDefault(); // 阻止浏览器默认行为
+            save(); // 调用 save 函数
+        }
+    });
+    window.addEventListener('beforeunload', function(event) {
+        if (editor.getValue() !== moData) {
+            event.preventDefault(); // 阻止浏览器默认行为
+            event.returnValue = ''; // 必须设置此属性才能弹出提示框
+            if (!confirm('您的修改尚未保存。')) {
+                // 如果用户不确定，则停留在当前页面
+                return;
+            }
+        }
+    });
     function save(index){
+        // console.log(editor.getValue())
         if (confirm("确认保存吗？")){
             $.post("/do/save",{path:curPath,data:editor.getValue()},function(data, status){
                 if(status == "success"){
