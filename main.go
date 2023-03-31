@@ -71,6 +71,36 @@ func web() {
 			"url":   url,
 		})
 	})
+	// 新建文件
+	r.POST("/do/newfile", func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		ok := true
+		file := filepath.Join(goFile+c.PostForm("path"), c.PostForm("filename"))
+		//判断文件是否存在
+		if _, err := os.Stat(file); !os.IsNotExist(err) {
+			ok = false
+		}
+		f, err := os.Create(file)
+		defer f.Close()
+		if err != nil {
+			ok = false
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"stat": ok,
+		})
+	})
+	// 新建文件夹
+	r.POST("/do/newdir", func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		ok := true
+		dir := filepath.Join(goFile+c.PostForm("path"), c.PostForm("dirname"))
+		if err := os.Mkdir(dir, 0755); err != nil {
+			ok = false
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"stat": ok,
+		})
+	})
 	//解压文件
 	r.POST("/do/unzip", func(c *gin.Context) {
 		path := c.PostForm("path")
@@ -120,6 +150,7 @@ func web() {
 			"path": c.PostForm("path"),
 		})
 	})
+	//删除文件/文件夹
 	r.POST("/do/rm", func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		path := goFile + c.PostForm("path")
