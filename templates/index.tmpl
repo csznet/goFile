@@ -51,6 +51,56 @@
 <a href="#" onclick="createNewDir()">新建文件夹</a>
 <script src="https://s3.pstatp.com/cdn/expire-1-M/jquery/3.2.1/jquery.min.js"></script>
 <script>
+    //拖放上传文件 start
+    // 获取 body 元素
+    const body = document.querySelector('body');
+
+    // 监听文件拖放事件
+    body.addEventListener('drop', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        // 获取拖放的文件
+        const file = event.dataTransfer.files[0];
+
+        // 判断拖放的元素是否为文件，如果是，则模拟表单提交
+        if (file) {
+            // 创建 form 元素
+            const form = document.createElement('form');
+            form.setAttribute('method', 'post');
+            form.setAttribute('enctype', 'multipart/form-data');
+            form.setAttribute('action', '/do/upload/{{.path}}');
+
+            // 创建 file input 元素
+            const fileInput = document.createElement('input');
+            fileInput.setAttribute('type', 'file');
+            fileInput.setAttribute('name', 'file');
+            fileInput.files = event.dataTransfer.files;
+
+            // 创建 submit input 元素
+            const submitInput = document.createElement('input');
+            submitInput.setAttribute('type', 'submit');
+            submitInput.setAttribute('value', '提交');
+
+            // 添加元素到 form 中
+            form.appendChild(fileInput);
+            form.appendChild(submitInput);
+
+            // 添加 form 到 body 中
+            body.appendChild(form);
+
+            // 提交表单
+            form.submit();
+        }
+    });
+
+    // 防止浏览器默认行为
+    body.addEventListener('dragover', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+    });
+
+    //拖放上传文件 end
     function createNewDir() {
         const dirName = window.prompt("请输入文件夹名：");
         if (dirName !== null) {
