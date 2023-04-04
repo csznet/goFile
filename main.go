@@ -3,6 +3,7 @@ package main
 import (
 	"archive/zip"
 	"flag"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"goFile/conf"
 	"io"
@@ -19,7 +20,7 @@ var goFile, goFilePort string
 // Web Serve
 func web() {
 	r := gin.Default()
-	r.LoadHTMLGlob("templates/*")
+	r.LoadHTMLGlob("assets/templates/*")
 	r.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.tmpl", gin.H{
 			"info": getFiles(goFile + "*"),
@@ -326,14 +327,20 @@ func getFiles(path string) conf.Info {
 func init() {
 	flag.StringVar(&goFile, "path", "./", "goFile path")
 	flag.StringVar(&goFilePort, "port", "8089", "goFile web port")
+}
+func main() {
+	// 获取当前工作目录
+	cwd, err := os.Getwd()
+	if err == nil {
+		goFile = cwd
+		fmt.Println("运行目录：" + goFile)
+	}
 	if goFile != "./" {
 		goFile = strings.Replace(goFile, "./", "", 1)
 	}
 	if goFile[len(goFile)-1] != '/' {
 		goFile = goFile + "/"
 	}
-}
-func main() {
 	flag.Parse()
 	web()
 }
