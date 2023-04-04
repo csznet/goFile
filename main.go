@@ -5,7 +5,9 @@ import (
 	"flag"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"goFile/assets"
 	"goFile/conf"
+	"html/template"
 	"io"
 	"net/http"
 	"os"
@@ -20,7 +22,8 @@ var goFile, goFilePort string
 // Web Serve
 func web() {
 	r := gin.Default()
-	r.LoadHTMLGlob("assets/templates/*")
+	//r.LoadHTMLGlob("assets/templates/*")
+	r.SetHTMLTemplate(template.Must(template.New("").ParseFS(assets.Templates, "templates/*")))
 	r.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.tmpl", gin.H{
 			"info": getFiles(goFile + "*"),

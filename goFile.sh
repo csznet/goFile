@@ -26,11 +26,12 @@ url="https://github.com/csznet/goFile/releases/download/${latest_tag}/${file_nam
 curl -L -O $url
 tar xf $file_name
 
-# 解压缩压缩包
-tar -zxvf $file_name
-
 # 清理
 rm $file_name
 
-# 执行goFile
-./goFile
+# 添加执行权限并移动到 bin 目录
+chmod +x goFile
+mv goFile /usr/local/bin/
+
+# 提示用户
+echo -e "\033[34m在想调用出 goFile 管理的目录下直接执行 goFile 命令即可\033[0m"
