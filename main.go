@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"goFile/assets"
 	"goFile/conf"
+	"goFile/i18n"
 	"html/template"
 	"io"
 	"net/http"
@@ -18,16 +19,46 @@ import (
 )
 
 var goFile, goFilePort string
+var cLang i18n.LangType
+
+// LangMiddleware i18n
+func LangMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Get the language from the request header
+		lang := c.GetHeader("Accept-Language")
+		var langType i18n.LangType
+		// Set the default language to English
+		if strings.Contains(lang, "zh-CN") {
+			langType = i18n.ZH
+		} else {
+			langType = i18n.EN
+		}
+		if cLang != langType {
+			cLang = langType
+		}
+		// Call the next handler
+		c.Next()
+	}
+}
+
+func translate(key string) string {
+	return i18n.Translate(key, cLang)
+}
 
 // Web Serve
 func web() {
 	r := gin.Default()
 	//r.LoadHTMLGlob("assets/templates/*")
-	r.SetHTMLTemplate(template.Must(template.New("").ParseFS(assets.Templates, "templates/*")))
+	r.Use(LangMiddleware())
+	r.SetFuncMap(template.FuncMap{
+		"t": translate,
+	})
+	r.SetHTMLTemplate(template.Must(template.New("").Funcs(r.FuncMap).ParseFS(assets.Templates, "templates/*")))
 	r.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.tmpl", gin.H{
 			"info": getFiles(goFile + "*"),
 			"path": "",
+			"Lang": c.GetString("Lang"),
 		})
 	})
 	r.GET("/view/*path", func(c *gin.Context) {

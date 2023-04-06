@@ -3,14 +3,14 @@
 <body>
 <h2>goFile</h2>
 {{if .path}}
-<p>当前目录：{{.path}}</p>
+<p>{{t "cd"}}:{{.path}}</p>
 {{end}}
 {{if .prev}}
-<a href="{{.prev}}">返回上一级</a>
+<a href="{{.prev}}">{{t "rl"}}</a>
 {{end}}
 <ul>
     {{if .info.Dirs}}
-    <h3>目录列表</h3>
+    <h3>{{t "dls"}}</h3>
     {{$path := .path}}
     {{range $item := .info.Dirs}}
     <li class="c-b">
@@ -20,7 +20,7 @@
     {{end}}
     {{end}}
     {{if .info.Files}}
-    <h3>文件列表</h3>
+    <h3>{{t "fls"}}</h3>
     {{range $item := .info.Files}}
     <li class="c-b">
         <a target="_blank" href="/view/{{.FilePath}}">{{$item.FileName}}</a>
