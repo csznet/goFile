@@ -24,6 +24,14 @@ var translations = map[string]map[LangType]string{
 		EN: "File List",
 		ZH: "文件列表",
 	},
+	"sc": {
+		EN: "Success",
+		ZH: "成功",
+	},
+	"fl": {
+		EN: "Fail",
+		ZH: "失败",
+	},
 }
 
 func Translate(key string, lang LangType) string {

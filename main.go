@@ -89,9 +89,9 @@ func web() {
 			cPath = ""
 		}
 		file, err := c.FormFile("file")
-		Stat := "成功"
+		Stat := translate("sc")
 		if err != nil {
-			Stat = "失败"
+			Stat = translate("fl")
 		}
 		c.SaveUploadedFile(file, goFile+cPath+file.Filename)
 		url := cPath
