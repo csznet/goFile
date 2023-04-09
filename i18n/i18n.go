@@ -32,6 +32,10 @@ var translations = map[string]map[LangType]string{
 		EN: "Fail",
 		ZH: "失败",
 	},
+	"rt": {
+		EN: "Return",
+		ZH: "返回",
+	},
 }
 
 func Translate(key string, lang LangType) string {

@@ -102,7 +102,7 @@ func web() {
 		}
 		c.HTML(http.StatusOK, "msg.tmpl", gin.H{
 			"msg":   "上传文件" + Stat,
-			"title": "返回",
+			"title": translate("rt"),
 			"url":   url,
 		})
 	})
