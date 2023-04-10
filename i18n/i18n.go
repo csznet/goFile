@@ -36,6 +36,10 @@ var translations = map[string]map[LangType]string{
 		EN: "Return",
 		ZH: "返回",
 	},
+	"upFile": {
+		EN: "Upload files",
+		ZH: "上传文件",
+	},
 }
 
 func Translate(key string, lang LangType) string {

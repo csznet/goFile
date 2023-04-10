@@ -101,7 +101,7 @@ func web() {
 			url = "/d/" + url
 		}
 		c.HTML(http.StatusOK, "msg.tmpl", gin.H{
-			"msg":   "上传文件" + Stat,
+			"msg":   translate("upFile") + Stat,
 			"title": translate("rt"),
 			"url":   url,
 		})
