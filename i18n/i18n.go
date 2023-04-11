@@ -40,6 +40,14 @@ var translations = map[string]map[LangType]string{
 		EN: "Upload files",
 		ZH: "上传文件",
 	},
+	"runDir": {
+		EN: "Run Directory",
+		ZH: "运行目录",
+	},
+	"scrDown": {
+		EN: "Remote download has been queued",
+		ZH: "远程下载已加入队列",
+	},
 }
 
 func Translate(key string, lang LangType) string {

@@ -78,8 +78,8 @@ func web() {
 			url = "/d/" + url
 		}
 		c.HTML(http.StatusOK, "msg.tmpl", gin.H{
-			"msg":   "远程下载已加入队列",
-			"title": "返回",
+			"msg":   translate("scrDown"),
+			"title": translate("rt"),
 			"url":   url,
 		})
 	})
@@ -367,7 +367,7 @@ func main() {
 	cwd, err := os.Getwd()
 	if err == nil {
 		goFile = cwd
-		fmt.Println("运行目录：" + goFile)
+		fmt.Println(translate("runDir") + ":" + goFile)
 	}
 	if goFile != "./" {
 		goFile = strings.Replace(goFile, "./", "", 1)
