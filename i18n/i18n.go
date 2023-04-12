@@ -48,6 +48,18 @@ var translations = map[string]map[LangType]string{
 		EN: "Remote download has been queued",
 		ZH: "远程下载已加入队列",
 	},
+	"del": {
+		EN: "delete",
+		ZH: "删除",
+	},
+	"edit": {
+		EN: "edit",
+		ZH: "编辑",
+	},
+	"unzip": {
+		EN: "decompression",
+		ZH: "解压",
+	},
 }
 
 func Translate(key string, lang LangType) string {

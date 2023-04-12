@@ -15,7 +15,7 @@
     {{range $item := .info.Dirs}}
     <li class="c-b">
         <a href="/d/{{$path}}{{.DirName}}">{{$item.DirName}}</a>
-        <span class="f-r"><a onclick="rm({{.DirPath}})">删除</a></span>
+        <span class="f-r"><a onclick="rm({{.DirPath}})">{{t "del"}}</a></span>
     </li>
     {{end}}
     {{end}}
@@ -24,10 +24,10 @@
     {{range $item := .info.Files}}
     <li class="c-b">
         <a target="_blank" href="/view/{{.FilePath}}">{{$item.FileName}}</a>
-        <span class="f-r"><a onclick="edite({{.FilePath}})">编辑</a></span>
-        <span class="f-r"><a onclick="rm({{.FilePath}})">删除</a></span>
+        <span class="f-r"><a onclick="edite({{.FilePath}})">{{t "edit"}}</a></span>
+        <span class="f-r"><a onclick="rm({{.FilePath}})">{{t "del"}}</a></span>
         {{if .IsZip}}
-        <span class="f-r"><a onclick="unzip({{.FilePath}})">解压</a></span>
+        <span class="f-r"><a onclick="unzip({{.FilePath}})">{{t "unzip"}}</a></span>
         {{end}}
     </li>
     {{end}}
