@@ -33,12 +33,12 @@
     {{end}}
     {{end}}
 </ul>
-<h3>上传文件到此目录</h3>
+<h3>{{t "cUpFile"}}</h3>
 <form action="/do/upload/{{.path}}" method="post" enctype="multipart/form-data">
     <input type="file" name="file" >
-    <input type="submit" value="提交">
+    <input type="submit" value="{{t "submit"}}">
 </form>
-<h3>远程下载文件到此目录</h3>
+<h3>{{t "cDownFile"}}</h3>
 <form action="/get" method="post" action="application/x-www-form-urlencoded">
     <label>URL:</label>
     <input name="url"/>
@@ -80,7 +80,7 @@
             // 创建 submit input 元素
             const submitInput = document.createElement('input');
             submitInput.setAttribute('type', 'submit');
-            submitInput.setAttribute('value', '提交');
+            submitInput.setAttribute('value', '{{t "submit"}}');
 
             // 添加元素到 form 中
             form.appendChild(fileInput);

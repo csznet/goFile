@@ -60,6 +60,18 @@ var translations = map[string]map[LangType]string{
 		EN: "decompression",
 		ZH: "解压",
 	},
+	"submit": {
+		EN: "submit",
+		ZH: "提交",
+	},
+	"cUpFile": {
+		EN: "Upload files to this directory",
+		ZH: "上传文件到此目录",
+	},
+	"cDownFile": {
+		EN: "Download files remotely to this directory",
+		ZH: "远程下载文件到此目录",
+	},
 }
 
 func Translate(key string, lang LangType) string {
