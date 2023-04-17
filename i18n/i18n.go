@@ -72,6 +72,14 @@ var translations = map[string]map[LangType]string{
 		EN: "Download files remotely to this directory",
 		ZH: "远程下载文件到此目录",
 	},
+	"nFile": {
+		EN: "New File",
+		ZH: "新建文件",
+	},
+	"nDir": {
+		EN: "New Dir",
+		ZH: "新建文件夹",
+	},
 }
 
 func Translate(key string, lang LangType) string {

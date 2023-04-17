@@ -47,8 +47,8 @@
     <input type="submit" value="提交队列">
 </form>
 <h3>在此目录新建</h3>
-<a href="#" onclick="createNewFile()">新建文件</a>
-<a href="#" onclick="createNewDir()">新建文件夹</a>
+<a href="#" onclick="createNewFile()">{{t "nFile"}}</a>
+<a href="#" onclick="createNewDir()">{{t "nDir"}}</a>
 <script src="https://s3.pstatp.com/cdn/expire-1-M/jquery/3.2.1/jquery.min.js"></script>
 <script>
     //拖放上传文件 start
@@ -107,10 +107,10 @@
             $.post("/do/newdir",{path:{{.path}},dirname:dirName},function(data,status){
                 if(status == "success"){
                     if(data.stat){
-                        if(confirm("新建成功，点击确认刷新")){
+                        if(confirm("操作成功，点击确认刷新")){
                             location.reload();
                         }}else{
-                        alert("新建失败")
+                        alert("操作失败")
                     }
                 }else{
                     alert("请求失败");
@@ -124,10 +124,10 @@
             $.post("/do/newfile",{path:{{.path}},filename:fileName},function(data,status){
                 if(status == "success"){
                     if(data.stat){
-                        if(confirm("新建成功，点击确认刷新")){
+                        if(confirm("操作成功，点击确认刷新")){
                             location.reload();
                         }}else{
-                        alert("新建失败，可能文件已存在")
+                        alert("操作失败，可能文件已存在")
                     }
                 }else{
                     alert("请求失败");
@@ -140,10 +140,10 @@
             $.post("/do/unzip",{path:$path},function(data,status){
                 if(status == "success"){
                     if(data.stat){
-                        if(confirm("解压成功，点击确认刷新")){
+                        if(confirm("操作成功，点击确认刷新")){
                             location.reload();
                     }}else{
-                        alert("解压失败")
+                        alert("操作失败")
                     }
                 }else{
                     alert("请求失败");
@@ -156,10 +156,10 @@
             $.post("/do/rm",{path:$path},function(data,status){
                 if(status == "success"){
                     if(data.stat){
-                        if(confirm("删除成功，点击确认刷新")){
+                        if(confirm("操作成功，点击确认刷新")){
                             location.reload();
                         }}else{
-                        alert("删除失败")
+                        alert("操作失败")
                     }
                 }else{
                     alert("请求失败");
