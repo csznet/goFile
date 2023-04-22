@@ -80,6 +80,10 @@ var translations = map[string]map[LangType]string{
 		EN: "New Dir",
 		ZH: "新建文件夹",
 	},
+	"reqFail": {
+		EN: "request failure",
+		ZH: "请求失败",
+	},
 }
 
 func Translate(key string, lang LangType) string {
