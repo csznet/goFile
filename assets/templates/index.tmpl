@@ -8,6 +8,7 @@
 {{if .prev}}
 <a href="{{.prev}}">{{t "rl"}}</a>
 {{end}}
+{{$r := .reader}}
 <ul>
     {{if .info.Dirs}}
     <h3>{{t "dls"}}</h3>
@@ -15,7 +16,9 @@
     {{range $item := .info.Dirs}}
     <li class="c-b">
         <a href="/d/{{$path}}{{.DirName}}">{{$item.DirName}}</a>
+        {{ if not $r }}
         <span class="f-r"><a onclick="rm({{.DirPath}})">{{t "del"}}</a></span>
+        {{ end }}
     </li>
     {{end}}
     {{end}}
@@ -24,15 +27,18 @@
     {{range $item := .info.Files}}
     <li class="c-b">
         <a target="_blank" href="/view/{{.FilePath}}">{{$item.FileName}}</a>
+        {{ if not $r }}
         <span class="f-r"><a onclick="edite({{.FilePath}})">{{t "edit"}}</a></span>
         <span class="f-r"><a onclick="rm({{.FilePath}})">{{t "del"}}</a></span>
         {{if .IsZip}}
         <span class="f-r"><a onclick="unzip({{.FilePath}})">{{t "unzip"}}</a></span>
         {{end}}
+        {{ end }}
     </li>
     {{end}}
     {{end}}
 </ul>
+{{ if not $r }}
 <h3>{{t "cUpFile"}}</h3>
 <form action="/do/upload/{{.path}}" method="post" enctype="multipart/form-data">
     <input type="file" name="file" >
@@ -183,5 +189,6 @@
         return temp;
     }
 </script>
+{{ end }}
 </body>
 </html>

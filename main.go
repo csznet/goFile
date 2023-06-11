@@ -18,6 +18,7 @@ import (
 	"strings"
 )
 
+var reader = false
 var goFile, goFilePort string
 var cLang i18n.LangType
 
@@ -56,147 +57,15 @@ func web() {
 	r.SetHTMLTemplate(template.Must(template.New("").Funcs(r.FuncMap).ParseFS(assets.Templates, "templates/*")))
 	r.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.tmpl", gin.H{
-			"info": getFiles(goFile + "*"),
-			"path": "",
-			"Lang": c.GetString("Lang"),
+			"info":   getFiles(goFile + "*"),
+			"path":   "",
+			"Lang":   c.GetString("Lang"),
+			"reader": reader,
 		})
 	})
 	r.GET("/view/*path", func(c *gin.Context) {
 		cPath := strings.Replace(c.Param("path"), "/", "", 1)
 		c.File(goFile + cPath)
-	})
-	r.POST("/get", func(c *gin.Context) {
-		go getFile(c.PostForm("url"), c.PostForm("path"))
-		cPath := strings.Replace(c.Param("path"), "/", "", 1)
-		if cPath == "/" {
-			cPath = ""
-		}
-		url := cPath
-		if len(cPath) == 0 {
-			url = "/"
-		} else {
-			url = "/d/" + url
-		}
-		c.HTML(http.StatusOK, "msg.tmpl", gin.H{
-			"msg":   translate("scrDown"),
-			"title": translate("rt"),
-			"url":   url,
-		})
-	})
-	r.POST("/do/upload/*path", func(c *gin.Context) {
-		cPath := strings.Replace(c.Param("path"), "/", "", 1)
-		if cPath == "/" {
-			cPath = ""
-		}
-		file, err := c.FormFile("file")
-		Stat := translate("sc")
-		if err != nil {
-			Stat = translate("fl")
-		}
-		c.SaveUploadedFile(file, goFile+cPath+file.Filename)
-		url := cPath
-		if len(cPath) == 0 {
-			url = "/"
-		} else {
-			url = "/d/" + url
-		}
-		c.HTML(http.StatusOK, "msg.tmpl", gin.H{
-			"msg":   translate("upFile") + Stat,
-			"title": translate("rt"),
-			"url":   url,
-		})
-	})
-	// 新建文件
-	r.POST("/do/newfile", func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		ok := true
-		file := filepath.Join(goFile+c.PostForm("path"), c.PostForm("filename"))
-		//判断文件是否存在
-		if _, err := os.Stat(file); !os.IsNotExist(err) {
-			ok = false
-		}
-		f, err := os.Create(file)
-		defer f.Close()
-		if err != nil {
-			ok = false
-		}
-		c.JSON(http.StatusOK, gin.H{
-			"stat": ok,
-		})
-	})
-	// 新建文件夹
-	r.POST("/do/newdir", func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		ok := true
-		dir := filepath.Join(goFile+c.PostForm("path"), c.PostForm("dirname"))
-		if err := os.Mkdir(dir, 0755); err != nil {
-			ok = false
-		}
-		c.JSON(http.StatusOK, gin.H{
-			"stat": ok,
-		})
-	})
-	//解压文件
-	r.POST("/do/unzip", func(c *gin.Context) {
-		path := c.PostForm("path")
-		pathSplit := strings.Split(path, ".")
-		fileType := pathSplit[len(pathSplit)-1]
-		ok := false
-		switch fileType {
-		case "zip":
-			ok = Unzip(path)
-		case "gz":
-			cmd := exec.Command("tar", "-zxvf", path)
-			err := cmd.Run()
-			if err == nil {
-				ok = true
-			}
-		}
-		c.JSON(http.StatusOK, gin.H{"stat": ok})
-	})
-
-	//保存代码
-	r.POST("/do/save/", func(c *gin.Context) {
-		file, err := os.OpenFile(c.PostForm("path"), os.O_WRONLY|os.O_TRUNC, 0644)
-		ok := true
-		if err != nil {
-			ok = false
-		}
-		data := c.PostForm("data")
-		if len(data) > 0 && data[len(data)-1] == '\n' {
-			data = data[:len(data)-1] //去掉新行
-		}
-		_, err = file.WriteString(data)
-		defer file.Close()
-		if err != nil && ok {
-			ok = false
-		}
-		c.JSON(http.StatusOK, gin.H{
-			"stat": ok,
-		})
-	})
-	//编辑代码
-	r.POST("/edite/", func(c *gin.Context) {
-		file, _ := os.Open(c.PostForm("path"))
-		data, _ := io.ReadAll(file)
-		defer file.Close()
-		c.HTML(http.StatusOK, "editor.tmpl", gin.H{
-			"data": string(data),
-			"path": c.PostForm("path"),
-		})
-	})
-	//删除文件/文件夹
-	r.POST("/do/rm", func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		path := goFile + c.PostForm("path")
-		err := os.RemoveAll(path)
-		Stat := true
-		if err != nil {
-			Stat = true
-		}
-		c.JSON(http.StatusOK, gin.H{
-			"stat": Stat,
-		})
 	})
 	r.GET("/d/*path", func(c *gin.Context) {
 		//防止提权
@@ -217,12 +86,150 @@ func web() {
 				goPath = goFile + "/" + cPath + "/*"
 			}
 			c.HTML(http.StatusOK, "index.tmpl", gin.H{
-				"info": getFiles(goPath),
-				"path": cPath + "/",
-				"prev": prev,
+				"info":   getFiles(goPath),
+				"path":   cPath + "/",
+				"prev":   prev,
+				"reader": reader,
 			})
 		}
 	})
+	//非阅读模式
+	if !reader {
+		r.POST("/get", func(c *gin.Context) {
+			go getFile(c.PostForm("url"), c.PostForm("path"))
+			cPath := strings.Replace(c.Param("path"), "/", "", 1)
+			if cPath == "/" {
+				cPath = ""
+			}
+			url := cPath
+			if len(cPath) == 0 {
+				url = "/"
+			} else {
+				url = "/d/" + url
+			}
+			c.HTML(http.StatusOK, "msg.tmpl", gin.H{
+				"msg":   translate("scrDown"),
+				"title": translate("rt"),
+				"url":   url,
+			})
+
+		})
+		r.POST("/do/upload/*path", func(c *gin.Context) {
+			cPath := strings.Replace(c.Param("path"), "/", "", 1)
+			if cPath == "/" {
+				cPath = ""
+			}
+			file, err := c.FormFile("file")
+			Stat := translate("sc")
+			if err != nil {
+				Stat = translate("fl")
+			}
+			c.SaveUploadedFile(file, goFile+cPath+file.Filename)
+			url := cPath
+			if len(cPath) == 0 {
+				url = "/"
+			} else {
+				url = "/d/" + url
+			}
+			c.HTML(http.StatusOK, "msg.tmpl", gin.H{
+				"msg":   translate("upFile") + Stat,
+				"title": translate("rt"),
+				"url":   url,
+			})
+		})
+		// 新建文件
+		r.POST("/do/newfile", func(c *gin.Context) {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+			ok := true
+			file := filepath.Join(goFile+c.PostForm("path"), c.PostForm("filename"))
+			//判断文件是否存在
+			if _, err := os.Stat(file); !os.IsNotExist(err) {
+				ok = false
+			}
+			f, err := os.Create(file)
+			defer f.Close()
+			if err != nil {
+				ok = false
+			}
+			c.JSON(http.StatusOK, gin.H{
+				"stat": ok,
+			})
+		})
+		// 新建文件夹
+		r.POST("/do/newdir", func(c *gin.Context) {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+			ok := true
+			dir := filepath.Join(goFile+c.PostForm("path"), c.PostForm("dirname"))
+			if err := os.Mkdir(dir, 0755); err != nil {
+				ok = false
+			}
+			c.JSON(http.StatusOK, gin.H{
+				"stat": ok,
+			})
+		})
+		//解压文件
+		r.POST("/do/unzip", func(c *gin.Context) {
+			path := c.PostForm("path")
+			pathSplit := strings.Split(path, ".")
+			fileType := pathSplit[len(pathSplit)-1]
+			ok := false
+			switch fileType {
+			case "zip":
+				ok = Unzip(path)
+			case "gz":
+				cmd := exec.Command("tar", "-zxvf", path)
+				err := cmd.Run()
+				if err == nil {
+					ok = true
+				}
+			}
+			c.JSON(http.StatusOK, gin.H{"stat": ok})
+		})
+
+		//保存代码
+		r.POST("/do/save/", func(c *gin.Context) {
+			file, err := os.OpenFile(c.PostForm("path"), os.O_WRONLY|os.O_TRUNC, 0644)
+			ok := true
+			if err != nil {
+				ok = false
+			}
+			data := c.PostForm("data")
+			if len(data) > 0 && data[len(data)-1] == '\n' {
+				data = data[:len(data)-1] //去掉新行
+			}
+			_, err = file.WriteString(data)
+			defer file.Close()
+			if err != nil && ok {
+				ok = false
+			}
+			c.JSON(http.StatusOK, gin.H{
+				"stat": ok,
+			})
+		})
+		//编辑代码
+		r.POST("/edite/", func(c *gin.Context) {
+			file, _ := os.Open(c.PostForm("path"))
+			data, _ := io.ReadAll(file)
+			defer file.Close()
+			c.HTML(http.StatusOK, "editor.tmpl", gin.H{
+				"data": string(data),
+				"path": c.PostForm("path"),
+			})
+		})
+		//删除文件/文件夹
+		r.POST("/do/rm", func(c *gin.Context) {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+			path := goFile + c.PostForm("path")
+			err := os.RemoveAll(path)
+			Stat := true
+			if err != nil {
+				Stat = true
+			}
+			c.JSON(http.StatusOK, gin.H{
+				"stat": Stat,
+			})
+		})
+	}
 	//监听端口默认为8080
 	r.Run("0.0.0.0:" + goFilePort)
 }
@@ -361,6 +368,11 @@ func getFiles(path string) conf.Info {
 func init() {
 	flag.StringVar(&goFile, "path", "./", "goFile path")
 	flag.StringVar(&goFilePort, "port", "8089", "goFile web port")
+	readerPtr := flag.Bool("r", false, "Enable reader")
+	flag.Parse()
+	if *readerPtr {
+		reader = true
+	}
 }
 func main() {
 	// 获取当前工作目录
@@ -375,6 +387,6 @@ func main() {
 	if goFile[len(goFile)-1] != '/' {
 		goFile = goFile + "/"
 	}
-	flag.Parse()
+	//flag.Parse()
 	web()
 }
