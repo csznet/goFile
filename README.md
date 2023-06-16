@@ -1,3 +1,5 @@
+https://x.csz.net/post/gofile.html
+
 # goFile
 easy file manager
 
