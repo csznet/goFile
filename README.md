@@ -1,4 +1,4 @@
-https://x.csz.net/gofile.html
+https://x.csz.net/post/gofile.html
 
 # goFile
 easy file manager
