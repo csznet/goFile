@@ -3,7 +3,8 @@ https://x.csz.net/post/gofile.html
 # goFile
 easy file manager
 
-<img width="1029" alt="image" src="https://user-images.githubusercontent.com/127601663/225728027-fdfe5172-1220-4619-8635-60bb4a085c89.png">
+![image](https://github.com/csznet/goFile/assets/127601663/eec3f999-50c5-4119-86ff-c3eceb8b3b98)
+
 <img width="1393" alt="image" src="https://user-images.githubusercontent.com/127601663/227174830-d5747bf9-6210-4fd4-b227-a154db494f11.png">
 
 介绍
