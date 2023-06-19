@@ -1,5 +1,26 @@
 #!/bin/bash
 
+# 检查是否安装了 gzip
+if ! command -v gzip &> /dev/null; then
+  echo "gzip is not installed. Installing gzip..."
+  if [[ "$(uname -s)" == "Linux" ]]; then
+    if [[ -f /etc/redhat-release ]]; then
+      yum install -y gzip
+    elif [[ -f /etc/debian_version ]]; then
+      apt-get update
+      apt-get install -y gzip
+    else
+      echo "Unsupported Linux distribution"
+      exit 1
+    fi
+  elif [[ "$(uname -s)" == "Darwin" ]]; then
+    brew install gzip
+  else
+    echo "Unsupported platform: $(uname -s)"
+    exit 1
+  fi
+fi
+
 # 获取最新版本 tag 名称
 latest_tag=$(curl --silent "https://api.github.com/repos/csznet/goFile/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
 
