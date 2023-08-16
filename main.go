@@ -21,6 +21,8 @@ import (
 var reader = false
 var goFile, goFilePort string
 var cLang i18n.LangType
+var goCachePath = "/var/tmp/goFile"
+var goCacheOption = true
 
 // LangMiddleware i18n
 func LangMiddleware() gin.HandlerFunc {
