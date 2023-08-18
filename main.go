@@ -4,7 +4,6 @@ import (
 	"archive/zip"
 	"flag"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"goFile/assets"
 	"goFile/conf"
 	"goFile/i18n"
@@ -16,12 +15,14 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/gin-gonic/gin"
 )
 
 var reader = false
 var goFile, goFilePort string
 var cLang i18n.LangType
-var goCachePath = "/var/tmp/goFile"
+var goCachePath = "/var/tmp/goFile/"
 var goCacheOption = true
 
 // LangMiddleware i18n
@@ -231,6 +232,11 @@ func web() {
 				"stat": Stat,
 			})
 		})
+		//查看图片缩略图 Thumb
+		r.GET("/thumb/*path", func(c *gin.Context) {
+			cPath := strings.Replace(c.Param("path"), "/", "", 1)
+			c.File(goCachePath + cPath)
+		})
 	}
 	//监听端口默认为8080
 	r.Run("0.0.0.0:" + goFilePort)
@@ -332,6 +338,7 @@ func getFiles(path string) conf.Info {
 	getFile, _ := filepath.Glob(path)
 	var info conf.Info
 	ZipList := []string{"zip", "gz"}
+	ImgList := []string{"jpg", "png"}
 	for i := 0; i < len(getFile); i++ {
 		im := getFile[i]
 		if Exists(im) {
@@ -359,6 +366,10 @@ func getFiles(path string) conf.Info {
 				strSplit := strings.Split(im, ".")
 				if in(strSplit[len(strSplit)-1], ZipList) {
 					file.IsZip = true
+				}
+				file.IsThumb = false
+				if in(strSplit[len(strSplit)-1], ImgList) && goCacheOption {
+					file.IsThumb = true
 				}
 				//file.FilePath = NewPath + im
 				info.Files = append(info.Files, file)

@@ -9,6 +9,7 @@ type File struct {
 	FileName string
 	FilePath string
 	IsZip    bool
+	IsThumb  bool
 }
 
 type Dir struct {
