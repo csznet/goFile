@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/disintegration/imaging"
 )
@@ -60,7 +62,17 @@ func NewImgThumb(fileContent []byte, thumbnailPath string) bool {
 		return false
 	}
 	thumbnail := imaging.Resize(image, 400, 0, imaging.Lanczos)
+	// 获取文件夹路径
+	thumbnailDir := filepath.Dir(thumbnailPath)
 
+	// 检查文件夹是否存在，如果不存在则创建
+	if _, err := os.Stat(thumbnailDir); os.IsNotExist(err) {
+		err := os.MkdirAll(thumbnailDir, os.ModePerm)
+		if err != nil {
+			fmt.Println("Error creating directory:", err)
+			return false
+		}
+	}
 	err = imaging.Save(thumbnail, thumbnailPath)
 	if err != nil {
 		fmt.Println(err)
@@ -68,26 +80,29 @@ func NewImgThumb(fileContent []byte, thumbnailPath string) bool {
 	}
 	return true
 }
+func RemovePP(path string) string {
+	return strings.ReplaceAll(path, "//", "/")
+}
 func GetImgThumb(path, goCachePath string) bool {
 	fileContent, getImgStatus := ReadFile(path)
 	if getImgStatus {
-		//判断缓存文件夹是否存在（如果是默认文件夹则自动新建
-		if goCachePath == "/var/tmp/goFile/" {
-			_, err := os.Stat(goCachePath)
-			if os.IsNotExist(err) {
-				// 文件夹不存在，创建它
-				err := os.Mkdir(goCachePath, 0755) // 0755 是文件夹权限
-				if err != nil {
-					fmt.Println("Failed to create folder:", err)
-					return false
-				}
-			} else if err != nil {
-				// 其他错误
-				fmt.Println("Error:", err)
-				return false
-			}
-		}
-		thumbnailPath := goCachePath + path
+		// //判断缓存文件夹是否存在（如果是默认文件夹则自动新建
+		// if goCachePath == "/var/tmp/goFile/" {
+		// 	_, err := os.Stat(goCachePath)
+		// 	if os.IsNotExist(err) {
+		// 		// 文件夹不存在，创建它
+		// 		err := os.Mkdir(goCachePath, 0755) // 0755 是文件夹权限
+		// 		if err != nil {
+		// 			fmt.Println("Failed to create folder:", err)
+		// 			return false
+		// 		}
+		// 	} else if err != nil {
+		// 		// 其他错误
+		// 		fmt.Println("Error:", err)
+		// 		return false
+		// 	}
+		// }
+		thumbnailPath := RemovePP(goCachePath + path)
 		//判断thumb文件是否存在
 		if ExistFile(thumbnailPath) {
 			// 获取thumb文件信息
@@ -114,7 +129,7 @@ func GetImgThumb(path, goCachePath string) bool {
 				return NewImgThumb(fileContent, thumbnailPath)
 			}
 		}
-		return true
+		return NewImgThumb(fileContent, thumbnailPath)
 	} else {
 		return false
 	}
