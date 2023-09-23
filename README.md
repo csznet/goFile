@@ -3,6 +3,8 @@ https://x.csz.net/gofile.html
 # goFile
 easy file manager
 
+我希望goFile是在运维的时候提供便利的工具，而不是大而全的文件管理器  
+
 ![image](https://github.com/csznet/goFile/assets/127601663/eec3f999-50c5-4119-86ff-c3eceb8b3b98)
 
 <img width="1393" alt="image" src="https://user-images.githubusercontent.com/127601663/227174830-d5747bf9-6210-4fd4-b227-a154db494f11.png">
