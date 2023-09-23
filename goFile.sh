@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# 检查是否以sudo权限运行
+if [ "$EUID" -ne 0 ]; then
+  echo -e "\033[31m请使用sudo权限运行此脚本\033[0m"
+  exit 1
+fi
+
 # 检查是否安装了 gzip
 if ! command -v gzip &> /dev/null; then
   echo "gzip is not installed. Installing gzip..."
@@ -21,29 +27,38 @@ if ! command -v gzip &> /dev/null; then
   fi
 fi
 
-# 获取最新版本 tag 名称
-latest_tag=$(curl --silent "https://api.github.com/repos/csznet/goFile/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-
 # 根据操作系统和处理器架构选择下载的文件名
 if [[ "$(uname -s)" == "Linux" ]]; then
   if [[ "$(uname -m)" == "x86_64" ]]; then
-    file_name="goFile-${latest_tag}-linux-amd64.tar.gz"
+    file_name="goFile-linux-amd64.tar.gz"
   else
-    file_name="goFile-${latest_tag}-linux-arm64.tar.gz"
+    file_name="goFile-linux-arm64.tar.gz"
   fi
 elif [[ "$(uname -s)" == "Darwin" ]]; then
   if [[ "$(uname -m)" == "x86_64" ]]; then
-    file_name="goFile-${latest_tag}-darwin-amd64.tar.gz"
+    file_name="goFile-darwin-amd64.tar.gz"
   else
-    file_name="goFile-${latest_tag}-darwin-arm64.tar.gz"
+    file_name="goFile-darwin-arm64.tar.gz"
   fi
 else
   echo "Unsupported platform: $(uname -s) $(uname -m)"
   exit 1
 fi
 
+# 获取百度的平均延迟（ping 5次并取平均值）
+ping_result=$(ping -c 5 -q baidu.com | awk -F'/' 'END{print $5}')
+
+# 判断平均延迟是否在100以内
+if (( $(echo "$ping_result < 100" | bc -l) )); then
+  echo "服务器位于中国国内，使用代理下载"
+  url="https://ghproxy.com/https://github.com/csznet/goFile/releases/latest/download/${file_name}"
+else
+  echo "服务器位于国外，不使用代理下载"
+  url="https://github.com/csznet/goFile/releases/latest/download/${file_name}"
+fi
+
 # 下载文件并解压
-url="https://github.com/csznet/goFile/releases/download/${latest_tag}/${file_name}"
+
 curl -L -O $url
 tar xf $file_name
 
