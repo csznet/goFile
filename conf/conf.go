@@ -22,3 +22,4 @@ var (
 	GoFile     string
 )
 var GoCacheOption = false
+var GoCachePath = "/var/tmp/goFile/"

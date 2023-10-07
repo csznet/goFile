@@ -21,7 +21,6 @@ import (
 var reader = false
 
 var cLang i18n.LangType
-var goCachePath = "/var/tmp/goFile/"
 
 // LangMiddleware i18n
 func LangMiddleware() gin.HandlerFunc {
@@ -233,8 +232,8 @@ func web() {
 			//查看图片缩略图 Thumb
 			r.GET("/thumb/*path", func(c *gin.Context) {
 				cPath := strings.Replace(c.Param("path"), "/", "", 1)
-				if utils.GetImgThumb(conf.GoFile+cPath, goCachePath) {
-					c.File(utils.RemovePP(goCachePath + conf.GoFile + cPath))
+				if utils.GetImgThumb(conf.GoFile+cPath, conf.GoCachePath) {
+					c.File(utils.RemovePP(conf.GoCachePath + conf.GoFile + cPath))
 				} else {
 					c.Status(http.StatusInternalServerError)                          // 设置HTTP状态码为500
 					c.String(http.StatusInternalServerError, "Internal Server Error") // 返回错误信息
