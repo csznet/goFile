@@ -16,3 +16,9 @@ type Dir struct {
 	DirName string
 	DirPath string
 }
+
+var (
+	GoFilePort string
+	GoFile     string
+)
+var GoCacheOption = false

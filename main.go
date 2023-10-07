@@ -1,7 +1,6 @@
 package main
 
 import (
-	"archive/zip"
 	"flag"
 	"fmt"
 	"goFile/assets"
@@ -14,17 +13,15 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"sort"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
 var reader = false
-var goFile, goFilePort string
+
 var cLang i18n.LangType
 var goCachePath = "/var/tmp/goFile/"
-var goCacheOption = true
 
 // LangMiddleware i18n
 func LangMiddleware() gin.HandlerFunc {
@@ -53,7 +50,6 @@ func translate(key string) string {
 // Web Serve
 func web() {
 	r := gin.Default()
-	//r.LoadHTMLGlob("assets/templates/*")
 	r.Use(LangMiddleware())
 	r.SetFuncMap(template.FuncMap{
 		"t": translate,
@@ -61,7 +57,7 @@ func web() {
 	r.SetHTMLTemplate(template.Must(template.New("").Funcs(r.FuncMap).ParseFS(assets.Templates, "templates/*")))
 	r.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.tmpl", gin.H{
-			"info":   getFiles(goFile + "*"),
+			"info":   utils.GetFiles(conf.GoFile + "*"),
 			"path":   "",
 			"Lang":   c.GetString("Lang"),
 			"reader": reader,
@@ -69,7 +65,7 @@ func web() {
 	})
 	r.GET("/view/*path", func(c *gin.Context) {
 		cPath := strings.Replace(c.Param("path"), "/", "", 1)
-		c.File(goFile + cPath)
+		c.File(conf.GoFile + cPath)
 	})
 	r.GET("/d/*path", func(c *gin.Context) {
 		//防止提权
@@ -86,11 +82,11 @@ func web() {
 				prev = "/d/" + prev
 			}
 			goPath := cPath + "/*"
-			if goFile != "./" {
-				goPath = goFile + "/" + cPath + "/*"
+			if conf.GoFile != "./" {
+				goPath = conf.GoFile + "/" + cPath + "/*"
 			}
 			c.HTML(http.StatusOK, "index.tmpl", gin.H{
-				"info":   getFiles(goPath),
+				"info":   utils.GetFiles(goPath),
 				"path":   cPath + "/",
 				"prev":   prev,
 				"reader": reader,
@@ -100,7 +96,7 @@ func web() {
 	//非阅读模式
 	if !reader {
 		r.POST("/get", func(c *gin.Context) {
-			go getFile(c.PostForm("url"), c.PostForm("path"))
+			go utils.GetFile(c.PostForm("url"), c.PostForm("path"))
 			cPath := strings.Replace(c.Param("path"), "/", "", 1)
 			if cPath == "/" {
 				cPath = ""
@@ -128,7 +124,7 @@ func web() {
 			if err != nil {
 				Stat = translate("fl")
 			}
-			c.SaveUploadedFile(file, goFile+cPath+file.Filename)
+			c.SaveUploadedFile(file, conf.GoFile+cPath+file.Filename)
 			url := cPath
 			if len(cPath) == 0 {
 				url = "/"
@@ -145,7 +141,7 @@ func web() {
 		r.POST("/do/newfile", func(c *gin.Context) {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 			ok := true
-			file := filepath.Join(goFile+c.PostForm("path"), c.PostForm("filename"))
+			file := filepath.Join(conf.GoFile+c.PostForm("path"), c.PostForm("filename"))
 			//判断文件是否存在
 			if _, err := os.Stat(file); !os.IsNotExist(err) {
 				ok = false
@@ -163,7 +159,7 @@ func web() {
 		r.POST("/do/newdir", func(c *gin.Context) {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 			ok := true
-			dir := filepath.Join(goFile+c.PostForm("path"), c.PostForm("dirname"))
+			dir := filepath.Join(conf.GoFile+c.PostForm("path"), c.PostForm("dirname"))
 			if err := os.Mkdir(dir, 0755); err != nil {
 				ok = false
 			}
@@ -179,7 +175,7 @@ func web() {
 			ok := false
 			switch fileType {
 			case "zip":
-				ok = Unzip(path)
+				ok = utils.Unzip(path)
 			case "gz":
 				cmd := exec.Command("tar", "-zxvf", path)
 				err := cmd.Run()
@@ -223,7 +219,7 @@ func web() {
 		//删除文件/文件夹
 		r.POST("/do/rm", func(c *gin.Context) {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-			path := goFile + c.PostForm("path")
+			path := conf.GoFile + c.PostForm("path")
 			err := os.RemoveAll(path)
 			Stat := true
 			if err != nil {
@@ -233,178 +229,48 @@ func web() {
 				"stat": Stat,
 			})
 		})
-		//查看图片缩略图 Thumb
-		r.GET("/thumb/*path", func(c *gin.Context) {
-			cPath := strings.Replace(c.Param("path"), "/", "", 1)
-			if utils.GetImgThumb(goFile+cPath, goCachePath) {
-				c.File(utils.RemovePP(goCachePath + goFile + cPath))
-			} else {
-				c.Status(http.StatusInternalServerError)                          // 设置HTTP状态码为500
-				c.String(http.StatusInternalServerError, "Internal Server Error") // 返回错误信息
-			}
-		})
+		if conf.GoCacheOption {
+			//查看图片缩略图 Thumb
+			r.GET("/thumb/*path", func(c *gin.Context) {
+				cPath := strings.Replace(c.Param("path"), "/", "", 1)
+				if utils.GetImgThumb(conf.GoFile+cPath, goCachePath) {
+					c.File(utils.RemovePP(goCachePath + conf.GoFile + cPath))
+				} else {
+					c.Status(http.StatusInternalServerError)                          // 设置HTTP状态码为500
+					c.String(http.StatusInternalServerError, "Internal Server Error") // 返回错误信息
+				}
+			})
+		}
 	}
 	//监听端口默认为8080
-	r.Run("0.0.0.0:" + goFilePort)
+	r.Run("0.0.0.0:" + conf.GoFilePort)
 }
 
-// 远程下载
-func getFile(url, path string) bool {
-	OutPath := pathOutConv(path)
-	// Get the data
-	resp, err := http.Get(url)
-	if err != nil {
-		return false
-	}
-	urlSplit := strings.Split(url, "/")
-	fileName := urlSplit[len(urlSplit)-1]
-	defer resp.Body.Close()
-	// 创建一个文件用于保存
-	out, err := os.Create(OutPath + fileName)
-	if err != nil {
-		return false
-	}
-	defer out.Close()
-	// 然后将响应流和文件流对接起来
-	_, err = io.Copy(out, resp.Body)
-	if err != nil {
-		return false
-	}
-	return true
-}
-
-// 保存目录转换
-func pathOutConv(path string) string {
-	path = goFile + path
-	fileSplit := strings.Split(path, "/")
-	fileName := fileSplit[len(fileSplit)-1]
-	OutPath := strings.TrimSuffix(path, fileName)
-	return OutPath
-}
-
-// Unzip 解压zip
-func Unzip(src string) bool {
-	OutPath := pathOutConv(src)
-	src = goFile + src
-	fr, err := zip.OpenReader(src)
-	if err != nil {
-		return false
-	}
-	defer fr.Close()
-	//r.reader.file 是一个集合，里面包括了压缩包里面的所有文件
-	for _, file := range fr.Reader.File {
-		//判断文件该目录文件是否为文件夹
-		if file.FileInfo().IsDir() {
-			err := os.MkdirAll(OutPath+file.Name, 0777)
-			if err != nil {
-				return false
-			}
-			continue
-		}
-		//为文件时，打开文件
-		r, err := file.Open()
-		if err == nil {
-			//在对应的目录中创建相同的文件
-			NewFile, _ := os.Create(OutPath + file.Name)
-			//将内容复制
-			io.Copy(NewFile, r)
-			//关闭文件
-			NewFile.Close()
-		}
-		r.Close()
-	}
-	return true
-}
-
-// Exists 判断是否存在
-func Exists(path string) bool {
-	_, err := os.Stat(path) //os.Stat获取文件信息
-	if err != nil {
-		if os.IsExist(err) {
-			return true
-		}
-		return false
-	}
-	return true
-}
-
-// 判断是否在列表中
-func in(target string, strArray []string) bool {
-	sort.Strings(strArray)
-	index := sort.SearchStrings(strArray, target)
-	//index的取值：[0,len(str_array)]
-	if index < len(strArray) && strArray[index] == target { //需要注意此处的判断，先判断 &&左侧的条件，如果不满足则结束此处判断，不会再进行右侧的判断
-		return true
-	}
-	return false
-}
-
-// 获取文件列表
-func getFiles(path string) conf.Info {
-	getFile, _ := filepath.Glob(path)
-	var info conf.Info
-	ZipList := []string{"zip", "gz"}
-	ImgList := []string{"jpg", "png"}
-	for i := 0; i < len(getFile); i++ {
-		im := getFile[i]
-		if Exists(im) {
-			s, _ := os.Stat(im)
-			if s.IsDir() {
-				var dir conf.Dir
-				if goFile != "./" {
-					dir.DirPath = strings.TrimPrefix(im, goFile)
-				} else {
-					dir.DirPath = im
-				}
-				dirSplit := strings.Split(im, "/")
-				dir.DirName = dirSplit[len(dirSplit)-1]
-				info.Dirs = append(info.Dirs, dir)
-			} else {
-				var file conf.File
-				if goFile != "./" {
-					file.FilePath = strings.TrimPrefix(im, goFile)
-				} else {
-					file.FilePath = im
-				}
-				filePath := strings.Split(im, "/")
-				file.FileName = filePath[len(filePath)-1]
-				file.IsZip = false
-				strSplit := strings.Split(im, ".")
-				if in(strSplit[len(strSplit)-1], ZipList) {
-					file.IsZip = true
-				}
-				file.IsThumb = false
-				if in(strSplit[len(strSplit)-1], ImgList) && goCacheOption {
-					file.IsThumb = true
-				}
-				//file.FilePath = NewPath + im
-				info.Files = append(info.Files, file)
-			}
-		}
-	}
-	return info
-}
 func init() {
-	flag.StringVar(&goFile, "path", "./", "goFile path")
-	flag.StringVar(&goFilePort, "port", "8089", "goFile web port")
+	flag.StringVar(&conf.GoFile, "path", "./", "goFile path")
+	flag.StringVar(&conf.GoFilePort, "port", "8089", "goFile web port")
 	readerPtr := flag.Bool("r", false, "Enable reader")
+	cachePtr := flag.Bool("t", false, "Enable Thumb")
 	flag.Parse()
 	if *readerPtr {
 		reader = true
+	}
+	if *cachePtr {
+		conf.GoCacheOption = true
 	}
 }
 func main() {
 	// 获取当前工作目录
 	cwd, err := os.Getwd()
 	if err == nil {
-		goFile = cwd
-		fmt.Println(translate("runDir") + ":" + goFile)
+		conf.GoFile = cwd
+		fmt.Println(translate("runDir") + ":" + conf.GoFile)
 	}
-	if goFile != "./" {
-		goFile = strings.Replace(goFile, "./", "", 1)
+	if conf.GoFile != "./" {
+		conf.GoFile = strings.Replace(conf.GoFile, "./", "", 1)
 	}
-	if goFile[len(goFile)-1] != '/' {
-		goFile = goFile + "/"
+	if conf.GoFile[len(conf.GoFile)-1] != '/' {
+		conf.GoFile = conf.GoFile + "/"
 	}
 	//flag.Parse()
 	web()
