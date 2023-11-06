@@ -12,10 +12,6 @@ var translations = map[string]map[LangType]string{
 		EN: "Current directory",
 		ZH: "当前目录",
 	},
-	"thumb": {
-		EN: "Thumb",
-		ZH: "缩略",
-	},
 	"rl": {
 		EN: "Return to the previous level",
 		ZH: "返回上一级",
