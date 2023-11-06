@@ -142,7 +142,7 @@ func web() {
 			ok := true
 			file := filepath.Join(conf.GoFile+c.PostForm("path"), c.PostForm("filename"))
 			//判断文件是否存在
-			if _, err := os.Stat(file); !os.IsNotExist(err) {
+			if !utils.Exist(file) {
 				ok = false
 			}
 			f, err := os.Create(file)
@@ -228,18 +228,6 @@ func web() {
 				"stat": Stat,
 			})
 		})
-		if conf.GoCacheOption {
-			//查看图片缩略图 Thumb
-			r.GET("/thumb/*path", func(c *gin.Context) {
-				cPath := strings.Replace(c.Param("path"), "/", "", 1)
-				if utils.GetImgThumb(conf.GoFile+cPath, conf.GoCachePath) {
-					c.File(utils.RemovePP(conf.GoCachePath + conf.GoFile + cPath))
-				} else {
-					c.Status(http.StatusInternalServerError)                          // 设置HTTP状态码为500
-					c.String(http.StatusInternalServerError, "Internal Server Error") // 返回错误信息
-				}
-			})
-		}
 	}
 	//监听端口默认为8080
 	r.Run("0.0.0.0:" + conf.GoFilePort)
@@ -249,13 +237,9 @@ func init() {
 	flag.StringVar(&conf.GoFile, "path", "./", "goFile path")
 	flag.StringVar(&conf.GoFilePort, "port", "8089", "goFile web port")
 	readerPtr := flag.Bool("r", false, "Enable reader")
-	cachePtr := flag.Bool("t", false, "Enable Thumb")
 	flag.Parse()
 	if *readerPtr {
 		reader = true
-	}
-	if *cachePtr {
-		conf.GoCacheOption = true
 	}
 }
 func main() {

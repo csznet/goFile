@@ -9,7 +9,6 @@ type File struct {
 	FileName string
 	FilePath string
 	IsZip    bool
-	IsThumb  bool
 }
 
 type Dir struct {
@@ -21,5 +20,3 @@ var (
 	GoFilePort string
 	GoFile     string
 )
-var GoCacheOption = false
-var GoCachePath = "/var/tmp/goFile/"
