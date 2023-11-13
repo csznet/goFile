@@ -18,9 +18,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var reader = false
-
-var cLang i18n.LangType
+var (
+	reader = false
+	cLang  i18n.LangType
+)
 
 // LangMiddleware i18n
 func LangMiddleware() gin.HandlerFunc {

@@ -2,7 +2,6 @@ package utils
 
 import (
 	"archive/zip"
-	"fmt"
 	"goFile/conf"
 	"io"
 	"net/http"
@@ -11,35 +10,6 @@ import (
 	"sort"
 	"strings"
 )
-
-// ReadFile read file
-func ReadFile(path string) ([]byte, bool) {
-	// 读取配置文件
-	file, err := os.Open(path)
-	if err != nil {
-		fmt.Println("Failed to open config file:", err)
-		return nil, false
-	}
-	defer file.Close()
-
-	// 获取文件大小
-	stat, err := file.Stat()
-	if err != nil {
-		fmt.Println("Failed to get file size:", err)
-		return nil, false
-	}
-
-	// 分配足够的空间来存储文件内容
-	freeBytes := make([]byte, stat.Size())
-
-	// 读取文件内容
-	_, err = io.ReadFull(file, freeBytes)
-	if err != nil {
-		fmt.Println("Failed to read file:", err)
-		return nil, false
-	}
-	return freeBytes, true
-}
 
 func RemovePP(path string) string {
 	return strings.ReplaceAll(path, "//", "/")
@@ -113,7 +83,7 @@ func GetFile(url, path string) bool {
 	return true
 }
 
-// Exists 判断是否存在
+// Exist 判断是否存在
 func Exist(path string) bool {
 	_, err := os.Stat(path) //os.Stat获取文件信息
 	if err != nil {
