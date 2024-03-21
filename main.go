@@ -66,10 +66,13 @@ func web() {
 	})
 	r.GET("/view/*path", func(c *gin.Context) {
 		cPath := strings.Replace(c.Param("path"), "/", "", 1)
+		c.File(conf.GoFile + cPath)
+	})
+	r.GET("/download/*path", func(c *gin.Context) {
+		cPath := strings.Replace(c.Param("path"), "/", "", 1)
 		fileName := filepath.Base(cPath)
 		c.FileAttachment(conf.GoFile+cPath, fileName)
 	})
-
 	r.GET("/d/*path", func(c *gin.Context) {
 		//防止提权
 		if c.Param("path") == "/" {

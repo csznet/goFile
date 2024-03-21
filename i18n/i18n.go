@@ -76,6 +76,10 @@ var translations = map[string]map[LangType]string{
 		EN: "request failure",
 		ZH: "请求失败",
 	},
+	"view": {
+		EN: "View",
+		ZH: "预览",
+	},
 }
 
 func Translate(key string, lang LangType) string {
