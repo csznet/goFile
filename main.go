@@ -74,31 +74,27 @@ func web() {
 		c.FileAttachment(conf.GoFile+cPath, fileName)
 	})
 	r.GET("/d/*path", func(c *gin.Context) {
-		//防止提权
-		if c.Param("path") == "/" {
+		rawPath := c.Param("path")
+		// 防止提权
+		if rawPath == "/" {
 			c.Redirect(http.StatusMovedPermanently, "/")
-		} else {
-			cPath := strings.Replace(c.Param("path"), "/", "", 1)
-			cPath = strings.TrimSuffix(cPath, "/")
-			pathSplice := strings.Split(cPath, "/")
-			prev := strings.TrimSuffix(cPath, "/"+pathSplice[len(pathSplice)-1])
-			if len(pathSplice) == 1 {
-				prev = "/"
-			} else {
-				prev = "/d/" + prev
-			}
-			goPath := cPath + "/*"
-			if conf.GoFile != "./" {
-				goPath = conf.GoFile + "/" + cPath + "/*"
-			}
-			c.HTML(http.StatusOK, "index.tmpl", gin.H{
-				"info":   utils.GetFiles(goPath),
-				"path":   cPath + "/",
-				"prev":   prev,
-				"reader": reader,
-			})
+			return
 		}
+		// 使用path包处理路径
+		cPath := strings.TrimPrefix(rawPath, "/")
+		cPath = strings.TrimSuffix(cPath, "/")
+		// 获取前一个目录的路径
+		prev := utils.GetPrevPath(cPath)
+		// 构建文件系统中的实际路径
+		goPath := filepath.Join(conf.GoFile, cPath) + "/*"
+		c.HTML(http.StatusOK, "index.tmpl", gin.H{
+			"info":   utils.GetFiles(goPath),
+			"path":   cPath + "/",
+			"prev":   prev,
+			"reader": reader,
+		})
 	})
+
 	//非阅读模式
 	if !reader {
 		// r.POST("/get", func(c *gin.Context) {

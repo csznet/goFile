@@ -86,10 +86,7 @@ func pathOutConv(path string) string {
 func Exist(path string) bool {
 	_, err := os.Stat(path) //os.Stat获取文件信息
 	if err != nil {
-		if os.IsExist(err) {
-			return true
-		}
-		return false
+		return os.IsExist(err)
 	}
 	return true
 }
@@ -107,41 +104,71 @@ func In(target string, strArray []string) bool {
 
 // GetFiles 获取文件列表
 func GetFiles(path string) conf.Info {
-	getFile, _ := filepath.Glob(path)
+	getFile, err := filepath.Glob(path)
+	if err != nil {
+		// 处理错误，例如记录日志或返回空的 conf.Info
+		return conf.Info{}
+	}
+
 	var info conf.Info
 	ZipList := []string{"zip", "gz"}
-	for i := 0; i < len(getFile); i++ {
-		im := getFile[i]
-		if Exist(im) {
-			s, _ := os.Stat(im)
-			if s.IsDir() {
-				var dir conf.Dir
-				if conf.GoFile != "./" {
-					dir.DirPath = strings.TrimPrefix(im, conf.GoFile)
-				} else {
-					dir.DirPath = im
-				}
-				dirSplit := strings.Split(im, "/")
-				dir.DirName = dirSplit[len(dirSplit)-1]
-				info.Dirs = append(info.Dirs, dir)
-			} else {
-				var file conf.File
-				if conf.GoFile != "./" {
-					file.FilePath = strings.TrimPrefix(im, conf.GoFile)
-				} else {
-					file.FilePath = im
-				}
-				filePath := strings.Split(im, "/")
-				file.FileName = filePath[len(filePath)-1]
-				file.IsZip = false
-				strSplit := strings.Split(im, ".")
-				if In(strSplit[len(strSplit)-1], ZipList) {
-					file.IsZip = true
-				}
-				//file.FilePath = NewPath + im
-				info.Files = append(info.Files, file)
+
+	for _, im := range getFile {
+		if !Exist(im) {
+			continue
+		}
+
+		s, err := os.Stat(im)
+		if err != nil {
+			// 处理错误，例如记录日志
+			continue
+		}
+
+		relPath := getRelativePath(im)
+
+		if s.IsDir() {
+			dir := conf.Dir{
+				DirPath: relPath,
+				DirName: filepath.Base(im),
 			}
+			info.Dirs = append(info.Dirs, dir)
+		} else {
+			file := conf.File{
+				FilePath: relPath,
+				FileName: filepath.Base(im),
+				IsZip:    isZipFile(im, ZipList),
+			}
+			info.Files = append(info.Files, file)
 		}
 	}
+
 	return info
+}
+
+func getRelativePath(im string) string {
+	if conf.GoFile != "./" {
+		return strings.TrimPrefix(im, conf.GoFile)
+	}
+	return im
+}
+
+func isZipFile(fileName string, zipList []string) bool {
+	ext := strings.ToLower(filepath.Ext(fileName))
+	for _, zipExt := range zipList {
+		if strings.ToLower("."+zipExt) == ext {
+			return true
+		}
+	}
+	return false
+}
+
+func GetPrevPath(cPath string) string {
+	if cPath == "" || cPath == "/" {
+		return "/"
+	}
+	prevPath := filepath.Dir(cPath)
+	if prevPath == "." || prevPath == "/" {
+		return "/"
+	}
+	return "/d/" + prevPath
 }
