@@ -246,17 +246,18 @@ func init() {
 }
 func main() {
 	// 获取当前工作目录
-	if conf.GoFile == "./"{
+	if conf.GoFile == "./" {
 		cwd, err := os.Getwd()
 		if err == nil {
 			conf.GoFile = cwd
 		}
-	}else{
+	} else {
 		conf.GoFile = strings.Replace(conf.GoFile, "./", "", 1)
 	}
 	if conf.GoFile[len(conf.GoFile)-1] != '/' {
 		conf.GoFile = conf.GoFile + "/"
 	}
-	fmt.Println(translate("runDir") + ":" + conf.GoFile)
+	fmt.Println("Run Directory:" + conf.GoFile)
+	fmt.Println("goFile Port is " + conf.GoFilePort)
 	web()
 }
