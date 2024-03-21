@@ -149,7 +149,9 @@ func web() {
 				ok = false
 			}
 			f, err := os.Create(file)
-			defer f.Close()
+			if err == nil {
+				defer f.Close()
+			}
 			if err != nil {
 				ok = false
 			}
