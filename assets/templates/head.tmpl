@@ -5,20 +5,71 @@
     <style>
         .f-r{float: right;margin-left: 10px}
         .c-b{clear: both}
-        body{max-width: 960px;margin:20px}
-        a:visited {color:#0000ee;}
+        body{max-width: 960px;}
         a{text-decoration:none}
-        li:hover{background-color: rgb(244, 244, 244);}
+        li:hover{background-color: rgb(235, 235, 235);}
         @media (prefers-color-scheme: dark) {
             body{
                 background-color: #333333;
                 color:rgb(226, 226, 226);
             }
-            a:visited,a{color:rgb(218, 218, 218)}
-            li:hover{background-color:rgb(96, 96, 96)}
         }
         h2 a{
             color:black!important;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        a {
+            color: #337ab7;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        h2, h3 {
+            color: #444;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        .c-b {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            margin-bottom: 5px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .f-r {
+            float: right;
+            margin-left: 10px;
+        }
+        form {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+        input[type="file"] {
+            margin-top: 10px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="text"], input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0 20px 0;
+            display: inline-block;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
         }
     </style>
 </head>
