@@ -49,6 +49,7 @@ func translate(key string) string {
 
 // Web Serve
 func web() {
+	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 	r.Use(LangMiddleware())
 	r.SetFuncMap(template.FuncMap{
@@ -245,17 +246,17 @@ func init() {
 }
 func main() {
 	// 获取当前工作目录
-	cwd, err := os.Getwd()
-	if err == nil {
-		conf.GoFile = cwd
-		fmt.Println(translate("runDir") + ":" + conf.GoFile)
-	}
-	if conf.GoFile != "./" {
+	if conf.GoFile == "./"{
+		cwd, err := os.Getwd()
+		if err == nil {
+			conf.GoFile = cwd
+		}
+	}else{
 		conf.GoFile = strings.Replace(conf.GoFile, "./", "", 1)
 	}
 	if conf.GoFile[len(conf.GoFile)-1] != '/' {
 		conf.GoFile = conf.GoFile + "/"
 	}
-	//flag.Parse()
+	fmt.Println(translate("runDir") + ":" + conf.GoFile)
 	web()
 }
