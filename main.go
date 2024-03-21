@@ -96,25 +96,25 @@ func web() {
 	})
 	//非阅读模式
 	if !reader {
-		r.POST("/get", func(c *gin.Context) {
-			go utils.GetFile(c.PostForm("url"), c.PostForm("path"))
-			cPath := strings.Replace(c.Param("path"), "/", "", 1)
-			if cPath == "/" {
-				cPath = ""
-			}
-			url := cPath
-			if len(cPath) == 0 {
-				url = "/"
-			} else {
-				url = "/d/" + url
-			}
-			c.HTML(http.StatusOK, "msg.tmpl", gin.H{
-				"msg":   translate("scrDown"),
-				"title": translate("rt"),
-				"url":   url,
-			})
+		// r.POST("/get", func(c *gin.Context) {
+		// 	go utils.GetFile(c.PostForm("url"), c.PostForm("path"))
+		// 	cPath := strings.Replace(c.Param("path"), "/", "", 1)
+		// 	if cPath == "/" {
+		// 		cPath = ""
+		// 	}
+		// 	url := cPath
+		// 	if len(cPath) == 0 {
+		// 		url = "/"
+		// 	} else {
+		// 		url = "/d/" + url
+		// 	}
+		// 	c.HTML(http.StatusOK, "msg.tmpl", gin.H{
+		// 		"msg":   translate("scrDown"),
+		// 		"title": translate("rt"),
+		// 		"url":   url,
+		// 	})
 
-		})
+		// })
 		r.POST("/do/upload/*path", func(c *gin.Context) {
 			cPath := strings.Replace(c.Param("path"), "/", "", 1)
 			if cPath == "/" {

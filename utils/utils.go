@@ -4,7 +4,6 @@ import (
 	"archive/zip"
 	"goFile/conf"
 	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
@@ -58,30 +57,30 @@ func pathOutConv(path string) string {
 	return OutPath
 }
 
-// GetFile 远程下载
-func GetFile(url, path string) bool {
-	OutPath := pathOutConv(path)
-	// Get the data
-	resp, err := http.Get(url)
-	if err != nil {
-		return false
-	}
-	urlSplit := strings.Split(url, "/")
-	fileName := urlSplit[len(urlSplit)-1]
-	defer resp.Body.Close()
-	// 创建一个文件用于保存
-	out, err := os.Create(OutPath + fileName)
-	if err != nil {
-		return false
-	}
-	defer out.Close()
-	// 然后将响应流和文件流对接起来
-	_, err = io.Copy(out, resp.Body)
-	if err != nil {
-		return false
-	}
-	return true
-}
+// // GetFile 远程下载
+// func GetFile(url, path string) bool {
+// 	OutPath := pathOutConv(path)
+// 	// Get the data
+// 	resp, err := http.Get(url)
+// 	if err != nil {
+// 		return false
+// 	}
+// 	urlSplit := strings.Split(url, "/")
+// 	fileName := urlSplit[len(urlSplit)-1]
+// 	defer resp.Body.Close()
+// 	// 创建一个文件用于保存
+// 	out, err := os.Create(OutPath + fileName)
+// 	if err != nil {
+// 		return false
+// 	}
+// 	defer out.Close()
+// 	// 然后将响应流和文件流对接起来
+// 	_, err = io.Copy(out, resp.Body)
+// 	if err != nil {
+// 		return false
+// 	}
+// 	return true
+// }
 
 // Exist 判断是否存在
 func Exist(path string) bool {

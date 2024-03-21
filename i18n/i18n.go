@@ -68,10 +68,6 @@ var translations = map[string]map[LangType]string{
 		EN: "Upload files to this directory",
 		ZH: "上传文件到此目录",
 	},
-	"cDownFile": {
-		EN: "Download files remotely to this directory",
-		ZH: "远程下载文件到此目录",
-	},
 	"nFile": {
 		EN: "New File",
 		ZH: "新建文件",

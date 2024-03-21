@@ -39,21 +39,12 @@
     {{end}}
 </ul>
 {{ if not $r }}
+<a href="#" onclick="createNewFile()">{{t "nFile"}}</a>
+<a href="#" onclick="createNewDir()">{{t "nDir"}}</a>
 <h3>{{t "cUpFile"}}</h3>
 <form id="uploadForm" action="/do/upload/{{.path}}" method="post" enctype="multipart/form-data">
     <input type="file" name="file" id="fileInput">
 </form>
-<h3>{{t "cDownFile"}}</h3>
-<form action="/get" method="post" action="application/x-www-form-urlencoded">
-    <label>URL:</label>
-    <input name="url"/>
-    <input name="path" value="{{.path}}" hidden />
-
-    <input type="submit" value="{{t "submit"}}">
-</form>
-<h3>在此目录新建</h3>
-<a href="#" onclick="createNewFile()">{{t "nFile"}}</a>
-<a href="#" onclick="createNewDir()">{{t "nDir"}}</a>
 <script src="https://s3.pstatp.com/cdn/expire-1-M/jquery/3.2.1/jquery.min.js"></script>
 <script>
     //拖放上传文件 start
