@@ -61,11 +61,11 @@ func web() {
 		})
 	})
 	r.GET("/view/*path", func(c *gin.Context) {
-		c.File(filepath.Join(conf.GoFile,filepath.Clean(c.Param("path"))))
+		c.File(filepath.Join(conf.GoFile, filepath.Clean(c.Param("path"))))
 	})
 	r.GET("/download/*path", func(c *gin.Context) {
-		cPath :=filepath.Clean(c.Param("path"))
-		c.FileAttachment(filepath.Join(conf.GoFile,cPath), filepath.Base(cPath))
+		cPath := filepath.Clean(c.Param("path"))
+		c.FileAttachment(filepath.Join(conf.GoFile, cPath), filepath.Base(cPath))
 	})
 	r.GET("/d/*path", func(c *gin.Context) {
 		rawPath := c.Param("path")
@@ -226,8 +226,8 @@ func main() {
 		if err == nil {
 			conf.GoFile = cwd
 		}
-	} 
-	conf.GoFile = filepath.Clean(conf.GoFile)+"/"
+	}
+	conf.GoFile = filepath.Clean(conf.GoFile) + "/"
 	fmt.Println("Run Directory:" + conf.GoFile)
 	fmt.Println("goFile Port is " + conf.GoFilePort)
 	web()
