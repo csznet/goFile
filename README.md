@@ -33,7 +33,7 @@ easy file manager
     bash <(curl -s https://raw.githubusercontent.com/csznet/goFile/main/goFile.sh)
 
 一键脚本支持amd64、arm构架，Linux、MacOS系统  
-Windows系统不会考虑（Windows就不需要去网页管理文件了吧
+<del>Windows系统不会考虑（Windows就不需要去网页管理文件了吧</del>
 
 运行
 ===
