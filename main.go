@@ -26,19 +26,15 @@ var (
 // LangMiddleware i18n
 func LangMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Get the language from the request header
 		lang := c.GetHeader("Accept-Language")
-		var langType i18n.LangType
-		// Set the default language to English
+		langType := i18n.EN // 默认英语
 		if strings.Contains(lang, "zh-CN") {
 			langType = i18n.ZH
-		} else {
-			langType = i18n.EN
 		}
+		// 只有当语言实际发生变化时才更新
 		if cLang != langType {
 			cLang = langType
 		}
-		// Call the next handler
 		c.Next()
 	}
 }
@@ -97,36 +93,14 @@ func web() {
 
 	//非阅读模式
 	if !reader {
-		// r.POST("/get", func(c *gin.Context) {
-		// 	go utils.GetFile(c.PostForm("url"), c.PostForm("path"))
-		// 	cPath := strings.Replace(c.Param("path"), "/", "", 1)
-		// 	if cPath == "/" {
-		// 		cPath = ""
-		// 	}
-		// 	url := cPath
-		// 	if len(cPath) == 0 {
-		// 		url = "/"
-		// 	} else {
-		// 		url = "/d/" + url
-		// 	}
-		// 	c.HTML(http.StatusOK, "msg.tmpl", gin.H{
-		// 		"msg":   translate("scrDown"),
-		// 		"title": translate("rt"),
-		// 		"url":   url,
-		// 	})
-
-		// })
 		r.POST("/do/upload/*path", func(c *gin.Context) {
-			cPath := strings.Replace(c.Param("path"), "/", "", 1)
-			if cPath == "/" {
-				cPath = ""
-			}
+			cPath := strings.Trim(c.Param("path"), "/")
 			file, err := c.FormFile("file")
 			Stat := translate("sc")
 			if err != nil {
 				Stat = translate("fl")
 			}
-			c.SaveUploadedFile(file, conf.GoFile+cPath+file.Filename)
+			c.SaveUploadedFile(file, filepath.Join(conf.GoFile, cPath, filepath.Base(file.Filename)))
 			url := cPath
 			if len(cPath) == 0 {
 				url = "/"
