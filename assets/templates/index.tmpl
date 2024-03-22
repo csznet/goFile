@@ -27,8 +27,8 @@
     {{range $item := .info.Files}}
     <li class="c-b">
         <a target="_blank" href="/download/{{.FilePath}}">{{$item.FileName}}</a>
-        {{ if not $r }}
         <span class="f-r"><a target="_blank" href="/view/{{.FilePath}}">{{t "view"}}</a></span>
+        {{ if not $r }}
         <span class="f-r"><a onclick="edite({{.FilePath}})">{{t "edit"}}</a></span>
         <span class="f-r"><a onclick="rm({{.FilePath}})">{{t "del"}}</a></span>
         {{if .IsZip}}
