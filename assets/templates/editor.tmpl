@@ -128,6 +128,7 @@
             $.post("/do/save",{path:curPath,data:editor.getValue()},function(data, status){
                 if(status == "success"){
                     if(data.stat){
+                    moData = editor.getValue(); // 更新moData
                         if(confirm("保存，点击确认刷新")){
                             var temp = document.createElement("form"); //创建form表单
                             temp.action = "/edite";

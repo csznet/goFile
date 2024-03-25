@@ -119,15 +119,16 @@ func web() {
 			ok := true
 			file := filepath.Join(conf.GoFile+c.PostForm("path"), c.PostForm("filename"))
 			//判断文件是否存在
-			if !utils.Exist(file) {
+			if utils.Exist(file) {
 				ok = false
-			}
-			f, err := os.Create(file)
-			if err == nil {
-				defer f.Close()
-			}
-			if err != nil {
-				ok = false
+			} else {
+				f, err := os.Create(file)
+				if err == nil {
+					defer f.Close()
+				}
+				if err != nil {
+					ok = false
+				}
 			}
 			c.JSON(http.StatusOK, gin.H{
 				"stat": ok,
@@ -190,18 +191,22 @@ func web() {
 			data, _ := io.ReadAll(file)
 			defer file.Close()
 			c.HTML(http.StatusOK, "editor.tmpl", gin.H{
-				"data": string(data),
+				"data": strings.TrimSpace(string(data)),
 				"path": c.PostForm("path"),
 			})
 		})
 		//删除文件/文件夹
 		r.POST("/do/rm", func(c *gin.Context) {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-			path := conf.GoFile + c.PostForm("path")
+			path := filepath.Join(conf.GoFile, c.PostForm("path"))
+			if !utils.Exist(path) {
+				//处理Windows情况
+				path = c.PostForm("path")
+			}
 			err := os.RemoveAll(path)
 			Stat := true
 			if err != nil {
-				Stat = true
+				Stat = false
 			}
 			c.JSON(http.StatusOK, gin.H{
 				"stat": Stat,
