@@ -29,11 +29,12 @@ easy file manager
 
 一键脚本
 ===
-
-    bash <(curl -s https://raw.githubusercontent.com/csznet/goFile/main/goFile.sh)
+```shell
+curl -Lso- csz.net/script/goFile.sh | sudo bash
+```  
 
 一键脚本支持amd64、arm构架，Linux、MacOS系统  
-Windows系统不会考虑（Windows就不需要去网页管理文件了吧
+<del>Windows系统不会考虑（Windows就不需要去网页管理文件了吧</del>
 
 运行
 ===
@@ -48,16 +49,17 @@ Windows系统不会考虑（Windows就不需要去网页管理文件了吧
 
 参数
 ===
+### 目录  
     -path
 
-目录，默认为./（一键脚本则为执行`goFile`命令的目录）
+文件目录，默认为./（一键脚本则为执行`goFile`命令的目录）
+### 端口
 
     -port
 
-web端口，默认为8089
+web端口，默认为8089  
+### 只读
 
     -r
 
 带入`-r`参数后表示为阅读模式，只能查看列表和下载文件，后面不需要带值  
-
-带入`-t`参数代表打开缩略图（太鸡肋了，后面可能会删掉
