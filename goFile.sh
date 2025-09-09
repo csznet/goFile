@@ -45,21 +45,43 @@ else
   exit 1
 fi
 
-# 获取百度的平均延迟（ping 5次并取平均值）
-ping_result=$(ping -c 5 -q baidu.com | awk -F'/' 'END{print $5}')
+# 让用户选择下载方式
+echo "请选择下载方式："
+echo "1) 从 GitHub 下载"
+echo "2) 使用镜像地址下载"
+echo "3) 自动判断"
+read -p "请输入选项 (1/2/3): " choice
 
-# 判断延迟是否在100以内
-if awk -v ping="$ping_result" 'BEGIN{exit !(ping < 100)}'; then
-  echo "服务器位于中国国内，使用代理下载"
-  url="https://mirror.ghproxy.com/https://github.com/csznet/goFile/releases/latest/download/${file_name}"
-else
-  echo "服务器位于国外，不使用代理下载"
-  url="https://github.com/csznet/goFile/releases/latest/download/${file_name}"
-fi
+case $choice in
+  1)
+    echo "选择了 GitHub 下载"
+    url="https://github.com/csznet/goFile/releases/latest/download/${file_name}"
+    ;;
+  2)
+    echo "选择了镜像下载"
+    url="https://ghfast.top/https://github.com/csznet/goFile/releases/latest/download/${file_name}"
+    ;;
+  3)
+    echo "正在自动判断网络环境..."
+    # 获取百度的平均延迟（ping 5次并取平均值）
+    ping_result=$(ping -c 5 -q baidu.com | awk -F'/' 'END{print $5}')
 
+    # 判断延迟是否在100以内
+    if awk -v ping="$ping_result" 'BEGIN{exit !(ping < 100)}'; then
+      echo "服务器位于中国国内，使用镜像下载"
+      url="https://ghfast.top/https://github.com/csznet/goFile/releases/latest/download/${file_name}"
+    else
+      echo "服务器位于国外，使用 GitHub 下载"
+      url="https://github.com/csznet/goFile/releases/latest/download/${file_name}"
+    fi
+    ;;
+  *)
+    echo -e "\033[31m无效选项，请重新运行脚本并选择 1/2/3\033[0m"
+    exit 1
+    ;;
+esac
 
 # 下载文件并解压
-
 curl -L -O $url
 tar xf $file_name
 
