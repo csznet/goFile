@@ -30,7 +30,7 @@ easy file manager
 一键脚本
 ===
 ```shell
-curl -Lso- https://raw.githubusercontent.com/csznet/goFile/refs/heads/main/goFile.sh | sudo bash
+bash <(curl -fsSL https://raw.githubusercontent.com/csznet/goFile/refs/heads/main/goFile.sh) <<< "3"
 ```  
 
 一键脚本支持amd64、arm构架，Linux、MacOS系统  
