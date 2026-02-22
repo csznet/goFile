@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -74,6 +75,17 @@ func urlForPath(cPath string) string {
 		return "/"
 	}
 	return "/d/" + cPath
+}
+
+// chunkDir returns the temp directory for storing upload chunks.
+// Returns empty string if fileId is invalid (path traversal attempt).
+func chunkDir(fileId string) string {
+	base := filepath.Join(os.TempDir(), "goFile-chunks")
+	dir := filepath.Clean(filepath.Join(base, fileId))
+	if !strings.HasPrefix(dir, base+string(filepath.Separator)) {
+		return ""
+	}
+	return dir
 }
 
 // Web Serve
@@ -160,6 +172,97 @@ func web() {
 				"title": i18n.Translate("rt", lang),
 				"url":   urlForPath(cPath),
 			})
+		})
+
+		// 分片上传 - 查询已上传分片
+		r.POST("/do/chunk/check", func(c *gin.Context) {
+			fileId := c.PostForm("fileId")
+			dir := chunkDir(fileId)
+			if dir == "" {
+				c.JSON(http.StatusOK, gin.H{"uploaded": []int{}})
+				return
+			}
+			totalChunks, _ := strconv.Atoi(c.PostForm("totalChunks"))
+			uploaded := []int{}
+			for i := 0; i < totalChunks; i++ {
+				if utils.Exist(filepath.Join(dir, strconv.Itoa(i))) {
+					uploaded = append(uploaded, i)
+				}
+			}
+			c.JSON(http.StatusOK, gin.H{"uploaded": uploaded})
+		})
+
+		// 分片上传 - 上传单个分片
+		r.POST("/do/chunk/upload", func(c *gin.Context) {
+			fileId := c.PostForm("fileId")
+			dir := chunkDir(fileId)
+			if dir == "" {
+				c.JSON(http.StatusOK, gin.H{"stat": false})
+				return
+			}
+			chunkIndex, err := strconv.Atoi(c.PostForm("chunkIndex"))
+			if err != nil {
+				c.JSON(http.StatusOK, gin.H{"stat": false})
+				return
+			}
+			if err := os.MkdirAll(dir, 0755); err != nil {
+				c.JSON(http.StatusOK, gin.H{"stat": false})
+				return
+			}
+			file, err := c.FormFile("file")
+			if err != nil {
+				c.JSON(http.StatusOK, gin.H{"stat": false})
+				return
+			}
+			if err := c.SaveUploadedFile(file, filepath.Join(dir, strconv.Itoa(chunkIndex))); err != nil {
+				c.JSON(http.StatusOK, gin.H{"stat": false})
+				return
+			}
+			c.JSON(http.StatusOK, gin.H{"stat": true})
+		})
+
+		// 分片上传 - 合并分片为最终文件
+		r.POST("/do/chunk/merge", func(c *gin.Context) {
+			fileId := c.PostForm("fileId")
+			dir := chunkDir(fileId)
+			if dir == "" {
+				c.JSON(http.StatusOK, gin.H{"stat": false})
+				return
+			}
+			totalChunks, err := strconv.Atoi(c.PostForm("totalChunks"))
+			if err != nil || totalChunks <= 0 {
+				c.JSON(http.StatusOK, gin.H{"stat": false})
+				return
+			}
+			destDir := filepath.Join(conf.GoFile, c.PostForm("path"))
+			if !utils.IsPathSafe(destDir) {
+				c.JSON(http.StatusOK, gin.H{"stat": false})
+				return
+			}
+			destPath := filepath.Join(destDir, filepath.Base(c.PostForm("fileName")))
+			out, err := os.Create(destPath)
+			if err != nil {
+				c.JSON(http.StatusOK, gin.H{"stat": false})
+				return
+			}
+			defer func() {
+				out.Close()
+				os.RemoveAll(dir)
+			}()
+			for i := 0; i < totalChunks; i++ {
+				chunk, err := os.Open(filepath.Join(dir, strconv.Itoa(i)))
+				if err != nil {
+					c.JSON(http.StatusOK, gin.H{"stat": false})
+					return
+				}
+				_, copyErr := io.Copy(out, chunk)
+				chunk.Close()
+				if copyErr != nil {
+					c.JSON(http.StatusOK, gin.H{"stat": false})
+					return
+				}
+			}
+			c.JSON(http.StatusOK, gin.H{"stat": true})
 		})
 
 		// 新建文件

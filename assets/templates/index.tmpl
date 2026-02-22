@@ -43,59 +43,149 @@
 <a href="#" onclick="createNewFile()">{{t "nFile"}}</a>
 <a href="#" onclick="createNewDir()">{{t "nDir"}}</a>
 <h3>{{t "cUpFile"}}</h3>
-<form id="uploadForm" action="/do/upload/{{.path}}" method="post" enctype="multipart/form-data">
+<form id="uploadForm" enctype="multipart/form-data">
     <input type="file" name="file" id="fileInput">
 </form>
+<div id="upload-progress" style="display:none;margin-top:10px;">
+    <div style="font-size:13px;margin-bottom:4px;" id="upload-filename"></div>
+    <div style="background:#ddd;border-radius:4px;height:16px;width:100%;overflow:hidden;">
+        <div id="upload-bar" style="background:#337ab7;height:16px;width:0%;transition:width 0.15s;"></div>
+    </div>
+    <div style="font-size:12px;margin-top:4px;color:#555;" id="upload-percent">0%</div>
+</div>
 <script src="https://s3.pstatp.com/cdn/expire-1-M/jquery/3.2.1/jquery.min.js"></script>
 <script>
-    //拖放上传文件 start
-    // 获取 body 元素
-    const body = document.querySelector('body');
+    var CHUNK_SIZE = 2 * 1024 * 1024; // 2MB per chunk
 
-    // 监听文件拖放事件
-    body.addEventListener('drop', (event) => {
-        event.preventDefault();
-        event.stopPropagation();
+    function getFileId(file) {
+        return file.name + '_' + file.size + '_' + file.lastModified;
+    }
 
-        // 获取拖放的文件
-        const file = event.dataTransfer.files[0];
+    function showProgress(filename) {
+        document.getElementById('upload-progress').style.display = 'block';
+        document.getElementById('upload-filename').textContent = filename;
+        updateProgress(0);
+    }
 
-        // 判断拖放的元素是否为文件，如果是，则模拟表单提交
-        if (file) {
-            // 创建 form 元素
-            const form = document.createElement('form');
-            form.setAttribute('method', 'post');
-            form.setAttribute('enctype', 'multipart/form-data');
-            form.setAttribute('action', '/do/upload/{{.path}}');
+    function updateProgress(percent) {
+        var p = Math.min(100, Math.round(percent));
+        document.getElementById('upload-bar').style.width = p + '%';
+        document.getElementById('upload-percent').textContent = p + '%';
+    }
 
-            // 创建 file input 元素
-            const fileInput = document.createElement('input');
-            fileInput.setAttribute('type', 'file');
-            fileInput.setAttribute('name', 'file');
-            fileInput.files = event.dataTransfer.files;
+    function hideProgress() {
+        document.getElementById('upload-progress').style.display = 'none';
+    }
 
-            // 创建 submit input 元素
-            const submitInput = document.createElement('input');
-            submitInput.setAttribute('type', 'submit');
-            submitInput.setAttribute('value', '{{t "submit"}}');
-            // 添加元素到 form 中
-            form.appendChild(fileInput);
-            form.appendChild(submitInput);
-            // 添加 form 到 body 中
-            body.appendChild(form);
-            // 提交表单
-            form.submit();
+    function checkChunks(fileId, totalChunks) {
+        return fetch('/do/chunk/check', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: 'fileId=' + encodeURIComponent(fileId) + '&totalChunks=' + totalChunks
+        }).then(function(r) { return r.json(); })
+          .then(function(d) { return d.uploaded || []; })
+          .catch(function() { return []; });
+    }
+
+    function uploadChunk(fileId, chunkIndex, totalChunks, chunk, onProgress) {
+        return new Promise(function(resolve, reject) {
+            var formData = new FormData();
+            formData.append('fileId', fileId);
+            formData.append('chunkIndex', chunkIndex);
+            formData.append('totalChunks', totalChunks);
+            formData.append('file', chunk);
+            var xhr = new XMLHttpRequest();
+            xhr.upload.addEventListener('progress', function(e) {
+                if (e.lengthComputable) onProgress(e.loaded / e.total);
+            });
+            xhr.onload = function() {
+                try {
+                    var data = JSON.parse(xhr.responseText);
+                    data.stat ? resolve() : reject(new Error('chunk upload failed'));
+                } catch(e) { reject(e); }
+            };
+            xhr.onerror = function() { reject(new Error('network error')); };
+            xhr.open('POST', '/do/chunk/upload');
+            xhr.send(formData);
+        });
+    }
+
+    function mergeChunks(fileId, totalChunks, fileName, path) {
+        return fetch('/do/chunk/merge', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: 'fileId=' + encodeURIComponent(fileId) +
+                  '&totalChunks=' + totalChunks +
+                  '&fileName=' + encodeURIComponent(fileName) +
+                  '&path=' + encodeURIComponent(path)
+        }).then(function(r) { return r.json(); })
+          .then(function(d) { return d.stat; });
+    }
+
+    async function uploadFile(file, uploadPath) {
+        var fileId = getFileId(file);
+        var totalChunks = Math.ceil(file.size / CHUNK_SIZE) || 1;
+        showProgress(file.name);
+
+        var uploadedList = await checkChunks(fileId, totalChunks);
+        var uploadedSet = new Set(uploadedList);
+        var completedChunks = uploadedList.length;
+
+        for (var i = 0; i < totalChunks; i++) {
+            if (uploadedSet.has(i)) {
+                updateProgress(completedChunks / totalChunks * 100);
+                continue;
+            }
+            var chunk = file.slice(i * CHUNK_SIZE, Math.min((i + 1) * CHUNK_SIZE, file.size));
+            var capturedI = i;
+            try {
+                await uploadChunk(fileId, capturedI, totalChunks, chunk, function(chunkProg) {
+                    updateProgress((completedChunks + chunkProg) / totalChunks * 100);
+                });
+                completedChunks++;
+                updateProgress(completedChunks / totalChunks * 100);
+            } catch(e) {
+                hideProgress();
+                alert('上传失败：' + e.message);
+                return;
+            }
         }
-    });
 
-    // 防止浏览器默认行为
-    body.addEventListener('dragover', (event) => {
+        updateProgress(100);
+        try {
+            var ok = await mergeChunks(fileId, totalChunks, file.name, uploadPath);
+            hideProgress();
+            if (ok) {
+                if (confirm('上传成功，点击确认刷新')) location.reload();
+            } else {
+                alert('文件合并失败');
+            }
+        } catch(e) {
+            hideProgress();
+            alert('合并请求失败');
+        }
+    }
+
+    // 拖放上传
+    var body = document.querySelector('body');
+    body.addEventListener('drop', function(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        var file = event.dataTransfer.files[0];
+        if (file) uploadFile(file, '{{.path}}');
+    });
+    body.addEventListener('dragover', function(event) {
         event.preventDefault();
         event.stopPropagation();
     });
-    //拖放上传文件 end
+
+    // 文件选择上传
+    document.getElementById('fileInput').addEventListener('change', function() {
+        if (this.files.length > 0) uploadFile(this.files[0], '{{.path}}');
+    });
+
     function createNewDir() {
-        const dirName = window.prompt("请输入文件夹名：");
+        var dirName = window.prompt("请输入文件夹名：");
         if (dirName !== null) {
             $.post("/do/newdir",{path:{{.path}},dirname:dirName},function(data,status){
                 if(status == "success"){
@@ -112,7 +202,7 @@
         }
     }
     function createNewFile() {
-        const fileName = window.prompt("请输入文件名：");
+        var fileName = window.prompt("请输入文件名：");
         if (fileName !== null) {
             $.post("/do/newfile",{path:{{.path}},filename:fileName},function(data,status){
                 if(status == "success"){
@@ -161,47 +251,20 @@
         }
     }
     function edite(path) {
-        var temp = document.createElement("form"); //创建form表单
+        var temp = document.createElement("form");
         temp.action = "/edite";
         temp.method = "post";
-        temp.target = "_blank"
-        temp.style.display = "none";//表单样式为隐藏
-        var opt =document.createElement("input");  //添加input标签
-        opt.type="text";   //类型为text
-        opt.name = "path";    //设置name属性
-        opt.value = path;   //设置value属性
+        temp.target = "_blank";
+        temp.style.display = "none";
+        var opt = document.createElement("input");
+        opt.type = "text";
+        opt.name = "path";
+        opt.value = path;
         temp.appendChild(opt);
         document.body.appendChild(temp);
         temp.submit();
         return temp;
     }
-    document.getElementById('fileInput').addEventListener('change', function() {
-    if (this.files.length > 0) {
-        // 创建一个FormData对象
-        var formData = new FormData();
-        formData.append('file', this.files[0]);
-
-        // 创建一个XMLHttpRequest对象
-        var xhr = new XMLHttpRequest();
-
-        // 设置请求方法和上传文件的URL
-        xhr.open('POST', '/do/upload/{{.path}}', true);
-
-        // 设置请求完成的处理函数
-        xhr.onload = function () {
-            if (xhr.status === 200) {
-                alert('文件上传成功');
-                location.reload(); // 或者其他的逻辑，比如显示上传的文件
-            } else {
-                alert('文件上传失败');
-            }
-        };
-
-        // 发送FormData对象
-        xhr.send(formData);
-    }
-});
-
 </script>
 {{ end }}
 </body>

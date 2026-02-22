@@ -5,6 +5,7 @@ import (
 	"goFile/conf"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 )
@@ -21,7 +22,7 @@ func IsPathSafe(path string) bool {
 // Each entry's destination is validated to prevent Zip Slip attacks.
 func Unzip(src string) bool {
 	OutPath := pathOutConv(src)
-	fullSrc := conf.GoFile + src
+	fullSrc := filepath.Join(conf.GoFile, src)
 	fr, err := zip.OpenReader(fullSrc)
 	if err != nil {
 		return false
@@ -61,12 +62,8 @@ func Unzip(src string) bool {
 }
 
 // pathOutConv returns the directory that contains the given file path.
-func pathOutConv(path string) string {
-	path = conf.GoFile + path
-	fileSplit := strings.Split(path, "/")
-	fileName := fileSplit[len(fileSplit)-1]
-	OutPath := strings.TrimSuffix(path, fileName)
-	return OutPath
+func pathOutConv(src string) string {
+	return filepath.Dir(filepath.Join(conf.GoFile, src)) + string(filepath.Separator)
 }
 
 // Exist reports whether path exists on the filesystem.
@@ -114,7 +111,7 @@ func GetFiles(path string) conf.Info {
 }
 
 func getRelativePath(im string) string {
-	return strings.TrimPrefix(im, conf.GoFile)
+	return filepath.ToSlash(strings.TrimPrefix(im, conf.GoFile))
 }
 
 func isZipFile(fileName string, zipList []string) bool {
@@ -131,7 +128,7 @@ func GetPrevPath(cPath string) string {
 	if cPath == "" || cPath == "/" {
 		return "/"
 	}
-	prevPath := filepath.Dir(cPath)
+	prevPath := path.Dir(cPath)
 	if prevPath == "." || prevPath == "/" {
 		return "/"
 	}
