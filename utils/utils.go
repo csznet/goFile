@@ -6,49 +6,61 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 )
 
-func RemovePP(path string) string {
-	return strings.ReplaceAll(path, "//", "/")
+// IsPathSafe checks that path is within the GoFile root directory,
+// preventing path traversal attacks.
+func IsPathSafe(path string) bool {
+	root := filepath.Clean(conf.GoFile)
+	cleaned := filepath.Clean(path)
+	return cleaned == root || strings.HasPrefix(cleaned, root+string(filepath.Separator))
 }
 
-// Unzip 解压zip
+// Unzip extracts a zip archive. src is a path relative to conf.GoFile.
+// Each entry's destination is validated to prevent Zip Slip attacks.
 func Unzip(src string) bool {
 	OutPath := pathOutConv(src)
-	src = conf.GoFile + src
-	fr, err := zip.OpenReader(src)
+	fullSrc := conf.GoFile + src
+	fr, err := zip.OpenReader(fullSrc)
 	if err != nil {
 		return false
 	}
 	defer fr.Close()
-	//r.reader.file 是一个集合，里面包括了压缩包里面的所有文件
+
 	for _, file := range fr.Reader.File {
-		//判断文件该目录文件是否为文件夹
+		destPath := filepath.Join(OutPath, file.Name)
+		// Zip Slip protection: reject entries that escape the output directory
+		if !IsPathSafe(destPath) {
+			return false
+		}
 		if file.FileInfo().IsDir() {
-			err := os.MkdirAll(OutPath+file.Name, 0777)
-			if err != nil {
+			if err := os.MkdirAll(destPath, 0755); err != nil {
 				return false
 			}
 			continue
 		}
-		//为文件时，打开文件
-		r, err := file.Open()
-		if err == nil {
-			//在对应的目录中创建相同的文件
-			NewFile, _ := os.Create(OutPath + file.Name)
-			//将内容复制
-			io.Copy(NewFile, r)
-			//关闭文件
-			NewFile.Close()
+		// Ensure parent directory exists for file entries without explicit dir entries
+		if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
+			return false
 		}
+		r, err := file.Open()
+		if err != nil {
+			return false
+		}
+		newFile, err := os.Create(destPath)
+		if err != nil {
+			r.Close()
+			return false
+		}
+		io.Copy(newFile, r)
+		newFile.Close()
 		r.Close()
 	}
 	return true
 }
 
-// 保存目录转换
+// pathOutConv returns the directory that contains the given file path.
 func pathOutConv(path string) string {
 	path = conf.GoFile + path
 	fileSplit := strings.Split(path, "/")
@@ -57,56 +69,19 @@ func pathOutConv(path string) string {
 	return OutPath
 }
 
-// // GetFile 远程下载
-// func GetFile(url, path string) bool {
-// 	OutPath := pathOutConv(path)
-// 	// Get the data
-// 	resp, err := http.Get(url)
-// 	if err != nil {
-// 		return false
-// 	}
-// 	urlSplit := strings.Split(url, "/")
-// 	fileName := urlSplit[len(urlSplit)-1]
-// 	defer resp.Body.Close()
-// 	// 创建一个文件用于保存
-// 	out, err := os.Create(OutPath + fileName)
-// 	if err != nil {
-// 		return false
-// 	}
-// 	defer out.Close()
-// 	// 然后将响应流和文件流对接起来
-// 	_, err = io.Copy(out, resp.Body)
-// 	if err != nil {
-// 		return false
-// 	}
-// 	return true
-// }
-
-// Exist 判断是否存在
+// Exist reports whether path exists on the filesystem.
 func Exist(path string) bool {
-	_, err := os.Stat(path) //os.Stat获取文件信息
+	_, err := os.Stat(path)
 	if err != nil {
 		return os.IsExist(err)
 	}
 	return true
 }
 
-// In 判断是否在列表中
-func In(target string, strArray []string) bool {
-	sort.Strings(strArray)
-	index := sort.SearchStrings(strArray, target)
-	//index的取值：[0,len(str_array)]
-	if index < len(strArray) && strArray[index] == target { //需要注意此处的判断，先判断 &&左侧的条件，如果不满足则结束此处判断，不会再进行右侧的判断
-		return true
-	}
-	return false
-}
-
-// GetFiles 获取文件列表
+// GetFiles returns directory and file listings for the given glob pattern.
 func GetFiles(path string) conf.Info {
 	getFile, err := filepath.Glob(path)
 	if err != nil {
-		// 处理错误，例如记录日志或返回空的 conf.Info
 		return conf.Info{}
 	}
 
@@ -117,45 +92,35 @@ func GetFiles(path string) conf.Info {
 		if !Exist(im) {
 			continue
 		}
-
 		s, err := os.Stat(im)
 		if err != nil {
-			// 处理错误，例如记录日志
 			continue
 		}
-
 		relPath := getRelativePath(im)
-
 		if s.IsDir() {
-			dir := conf.Dir{
+			info.Dirs = append(info.Dirs, conf.Dir{
 				DirPath: relPath,
 				DirName: filepath.Base(im),
-			}
-			info.Dirs = append(info.Dirs, dir)
+			})
 		} else {
-			file := conf.File{
+			info.Files = append(info.Files, conf.File{
 				FilePath: relPath,
 				FileName: filepath.Base(im),
 				IsZip:    isZipFile(im, ZipList),
-			}
-			info.Files = append(info.Files, file)
+			})
 		}
 	}
-
 	return info
 }
 
 func getRelativePath(im string) string {
-	if conf.GoFile != "./" {
-		return strings.TrimPrefix(im, conf.GoFile)
-	}
-	return im
+	return strings.TrimPrefix(im, conf.GoFile)
 }
 
 func isZipFile(fileName string, zipList []string) bool {
 	ext := strings.ToLower(filepath.Ext(fileName))
 	for _, zipExt := range zipList {
-		if strings.ToLower("."+zipExt) == ext {
+		if "."+zipExt == ext {
 			return true
 		}
 	}

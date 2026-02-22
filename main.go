@@ -19,69 +19,109 @@ import (
 )
 
 var (
-	reader = false
-	cLang  i18n.LangType
+	reader       = false
+	templateSets map[i18n.LangType]*template.Template
 )
 
-// LangMiddleware i18n
+// initTemplates pre-compiles one template set per language so each request
+// gets a thread-safe, language-bound "t" function without using a shared global.
+func initTemplates() {
+	templateSets = make(map[i18n.LangType]*template.Template)
+	for _, lang := range []i18n.LangType{i18n.EN, i18n.ZH} {
+		l := lang
+		templateSets[l] = template.Must(
+			template.New("").Funcs(template.FuncMap{
+				"t": func(key string) string {
+					return i18n.Translate(key, l)
+				},
+			}).ParseFS(assets.Templates, "templates/*"),
+		)
+	}
+}
+
+// getLang returns the language stored in the request context by LangMiddleware.
+func getLang(c *gin.Context) i18n.LangType {
+	if lang, ok := c.Get("lang"); ok {
+		return lang.(i18n.LangType)
+	}
+	return i18n.EN
+}
+
+// LangMiddleware detects the request language and stores it in the context.
 func LangMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		lang := c.GetHeader("Accept-Language")
-		langType := i18n.EN // 默认英语
+		langType := i18n.EN
 		if strings.Contains(lang, "zh-CN") {
 			langType = i18n.ZH
 		}
-		// 只有当语言实际发生变化时才更新
-		if cLang != langType {
-			cLang = langType
-		}
+		c.Set("lang", langType)
 		c.Next()
 	}
 }
 
-func translate(key string) string {
-	return i18n.Translate(key, cLang)
+// renderHTML executes the named template with the per-request language set.
+func renderHTML(c *gin.Context, name string, data gin.H) {
+	c.Header("Content-Type", "text/html; charset=utf-8")
+	if err := templateSets[getLang(c)].ExecuteTemplate(c.Writer, name, data); err != nil {
+		_ = c.AbortWithError(http.StatusInternalServerError, err)
+	}
+}
+
+// urlForPath returns the redirect URL for a given relative directory path.
+func urlForPath(cPath string) string {
+	if len(cPath) == 0 {
+		return "/"
+	}
+	return "/d/" + cPath
 }
 
 // Web Serve
 func web() {
+	initTemplates()
+
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 	r.Use(LangMiddleware())
-	r.SetFuncMap(template.FuncMap{
-		"t": translate,
-	})
-	r.SetHTMLTemplate(template.Must(template.New("").Funcs(r.FuncMap).ParseFS(assets.Templates, "templates/*")))
+
 	r.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "index.tmpl", gin.H{
+		renderHTML(c, "index.tmpl", gin.H{
 			"info":   utils.GetFiles(conf.GoFile + "*"),
 			"path":   "",
-			"Lang":   c.GetString("Lang"),
 			"reader": reader,
 		})
 	})
+
 	r.GET("/view/*path", func(c *gin.Context) {
-		c.File(filepath.Join(conf.GoFile, filepath.Clean(c.Param("path"))))
+		absPath := filepath.Join(conf.GoFile, filepath.Clean(c.Param("path")))
+		if !utils.IsPathSafe(absPath) {
+			c.Status(http.StatusForbidden)
+			return
+		}
+		c.File(absPath)
 	})
+
 	r.GET("/download/*path", func(c *gin.Context) {
 		cPath := filepath.Clean(c.Param("path"))
-		c.FileAttachment(filepath.Join(conf.GoFile, cPath), filepath.Base(cPath))
+		absPath := filepath.Join(conf.GoFile, cPath)
+		if !utils.IsPathSafe(absPath) {
+			c.Status(http.StatusForbidden)
+			return
+		}
+		c.FileAttachment(absPath, filepath.Base(cPath))
 	})
+
 	r.GET("/d/*path", func(c *gin.Context) {
 		rawPath := c.Param("path")
-		// 防止提权
 		if rawPath == "/" {
 			c.Redirect(http.StatusMovedPermanently, "/")
 			return
 		}
-		// 使用path包处理路径
 		cPath := strings.TrimPrefix(rawPath, "/")
 		cPath = strings.TrimSuffix(cPath, "/")
-		// 获取前一个目录的路径
 		prev := utils.GetPrevPath(cPath)
-		// 构建文件系统中的实际路径
 		goPath := filepath.Join(conf.GoFile, cPath) + "/*"
-		c.HTML(http.StatusOK, "index.tmpl", gin.H{
+		renderHTML(c, "index.tmpl", gin.H{
 			"info":   utils.GetFiles(goPath),
 			"path":   cPath + "/",
 			"prev":   prev,
@@ -89,129 +129,141 @@ func web() {
 		})
 	})
 
-	//非阅读模式
+	// 非阅读模式
 	if !reader {
 		r.POST("/do/upload/*path", func(c *gin.Context) {
 			cPath := strings.Trim(c.Param("path"), "/")
+			lang := getLang(c)
+
 			file, err := c.FormFile("file")
-			Stat := translate("sc")
 			if err != nil {
-				Stat = translate("fl")
+				renderHTML(c, "msg.tmpl", gin.H{
+					"msg":   i18n.Translate("upFile", lang) + i18n.Translate("fl", lang),
+					"title": i18n.Translate("rt", lang),
+					"url":   urlForPath(cPath),
+				})
+				return
 			}
-			c.SaveUploadedFile(file, filepath.Join(conf.GoFile, cPath, filepath.Base(file.Filename)))
-			url := cPath
-			if len(cPath) == 0 {
-				url = "/"
-			} else {
-				url = "/d/" + url
+
+			destDir := filepath.Join(conf.GoFile, cPath)
+			if !utils.IsPathSafe(destDir) {
+				c.Status(http.StatusForbidden)
+				return
 			}
-			c.HTML(http.StatusOK, "msg.tmpl", gin.H{
-				"msg":   translate("upFile") + Stat,
-				"title": translate("rt"),
-				"url":   url,
+
+			stat := i18n.Translate("sc", lang)
+			if err := c.SaveUploadedFile(file, filepath.Join(destDir, filepath.Base(file.Filename))); err != nil {
+				stat = i18n.Translate("fl", lang)
+			}
+			renderHTML(c, "msg.tmpl", gin.H{
+				"msg":   i18n.Translate("upFile", lang) + stat,
+				"title": i18n.Translate("rt", lang),
+				"url":   urlForPath(cPath),
 			})
 		})
+
 		// 新建文件
 		r.POST("/do/newfile", func(c *gin.Context) {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-			ok := true
-			file := filepath.Join(conf.GoFile+c.PostForm("path"), c.PostForm("filename"))
-			//判断文件是否存在
-			if utils.Exist(file) {
-				ok = false
-			} else {
-				f, err := os.Create(file)
-				if err == nil {
-					defer f.Close()
-				}
-				if err != nil {
-					ok = false
-				}
-			}
-			c.JSON(http.StatusOK, gin.H{
-				"stat": ok,
-			})
-		})
-		// 新建文件夹
-		r.POST("/do/newdir", func(c *gin.Context) {
-			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-			ok := true
-			dir := filepath.Join(conf.GoFile+c.PostForm("path"), c.PostForm("dirname"))
-			if err := os.Mkdir(dir, 0755); err != nil {
-				ok = false
-			}
-			c.JSON(http.StatusOK, gin.H{
-				"stat": ok,
-			})
-		})
-		//解压文件
-		r.POST("/do/unzip", func(c *gin.Context) {
-			path := c.PostForm("path")
-			pathSplit := strings.Split(path, ".")
-			fileType := pathSplit[len(pathSplit)-1]
+			filePath := filepath.Join(conf.GoFile, c.PostForm("path"), filepath.Base(c.PostForm("filename")))
 			ok := false
-			switch fileType {
-			case "zip":
-				ok = utils.Unzip(path)
-			case "gz":
-				cmd := exec.Command("tar", "-zxvf", path)
-				err := cmd.Run()
+			if utils.IsPathSafe(filePath) && !utils.Exist(filePath) {
+				f, err := os.Create(filePath)
 				if err == nil {
+					f.Close()
 					ok = true
 				}
 			}
 			c.JSON(http.StatusOK, gin.H{"stat": ok})
 		})
 
-		//保存代码
-		r.POST("/do/save/", func(c *gin.Context) {
-			file, err := os.OpenFile(c.PostForm("path"), os.O_WRONLY|os.O_TRUNC, 0644)
-			ok := true
-			if err != nil {
-				ok = false
+		// 新建文件夹
+		r.POST("/do/newdir", func(c *gin.Context) {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+			dirPath := filepath.Join(conf.GoFile, c.PostForm("path"), filepath.Base(c.PostForm("dirname")))
+			ok := false
+			if utils.IsPathSafe(dirPath) {
+				if err := os.Mkdir(dirPath, 0755); err == nil {
+					ok = true
+				}
 			}
+			c.JSON(http.StatusOK, gin.H{"stat": ok})
+		})
+
+		// 解压文件
+		r.POST("/do/unzip", func(c *gin.Context) {
+			relPath := c.PostForm("path")
+			absPath := filepath.Join(conf.GoFile, relPath)
+			if !utils.IsPathSafe(absPath) {
+				c.JSON(http.StatusOK, gin.H{"stat": false})
+				return
+			}
+			ext := strings.ToLower(filepath.Ext(relPath))
+			ok := false
+			switch ext {
+			case ".zip":
+				ok = utils.Unzip(relPath)
+			case ".gz":
+				cmd := exec.Command("tar", "-zxvf", absPath, "-C", filepath.Dir(absPath))
+				ok = cmd.Run() == nil
+			}
+			c.JSON(http.StatusOK, gin.H{"stat": ok})
+		})
+
+		// 保存代码
+		r.POST("/do/save/", func(c *gin.Context) {
+			filePath := filepath.Join(conf.GoFile, c.PostForm("path"))
+			if !utils.IsPathSafe(filePath) {
+				c.JSON(http.StatusOK, gin.H{"stat": false})
+				return
+			}
+			file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_TRUNC, 0644)
+			if err != nil {
+				c.JSON(http.StatusOK, gin.H{"stat": false})
+				return
+			}
+			defer file.Close()
 			data := c.PostForm("data")
 			if len(data) > 0 && data[len(data)-1] == '\n' {
-				data = data[:len(data)-1] //去掉新行
+				data = data[:len(data)-1] // 去掉新行
 			}
 			_, err = file.WriteString(data)
-			defer file.Close()
-			if err != nil && ok {
-				ok = false
-			}
-			c.JSON(http.StatusOK, gin.H{
-				"stat": ok,
-			})
+			c.JSON(http.StatusOK, gin.H{"stat": err == nil})
 		})
-		//编辑代码
+
+		// 编辑代码
 		r.POST("/edite/", func(c *gin.Context) {
-			file, _ := os.Open(c.PostForm("path"))
-			data, _ := io.ReadAll(file)
+			filePath := filepath.Join(conf.GoFile, c.PostForm("path"))
+			if !utils.IsPathSafe(filePath) {
+				c.Status(http.StatusForbidden)
+				return
+			}
+			file, err := os.Open(filePath)
+			if err != nil {
+				c.Status(http.StatusNotFound)
+				return
+			}
 			defer file.Close()
-			c.HTML(http.StatusOK, "editor.tmpl", gin.H{
+			data, _ := io.ReadAll(file)
+			renderHTML(c, "editor.tmpl", gin.H{
 				"data": strings.TrimSpace(string(data)),
 				"path": c.PostForm("path"),
 			})
 		})
-		//删除文件/文件夹
+
+		// 删除文件/文件夹
 		r.POST("/do/rm", func(c *gin.Context) {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 			path := filepath.Join(conf.GoFile, c.PostForm("path"))
-			if !utils.Exist(path) {
-				//处理Windows情况
-				path = c.PostForm("path")
+			if !utils.IsPathSafe(path) {
+				c.JSON(http.StatusOK, gin.H{"stat": false})
+				return
 			}
 			err := os.RemoveAll(path)
-			Stat := true
-			if err != nil {
-				Stat = false
-			}
-			c.JSON(http.StatusOK, gin.H{
-				"stat": Stat,
-			})
+			c.JSON(http.StatusOK, gin.H{"stat": err == nil})
 		})
 	}
-	//监听端口默认为8080
+
 	r.Run("0.0.0.0:" + conf.GoFilePort)
 }
 
@@ -224,15 +276,15 @@ func init() {
 		reader = true
 	}
 }
+
 func main() {
-	// 获取当前工作目录
 	if conf.GoFile == "./" {
 		cwd, err := os.Getwd()
 		if err == nil {
 			conf.GoFile = cwd
 		}
 	}
-	conf.GoFile = filepath.Clean(conf.GoFile) + "/"
+	conf.GoFile = filepath.Clean(conf.GoFile) + string(filepath.Separator)
 	fmt.Println("Run Directory:" + conf.GoFile)
 	fmt.Println("goFile Port is " + conf.GoFilePort)
 	web()
