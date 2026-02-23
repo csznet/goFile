@@ -265,6 +265,26 @@ func web() {
 			c.JSON(http.StatusOK, gin.H{"stat": true})
 		})
 
+		// API 上传（返回 JSON，适合脚本调用）
+		r.POST("/api/upload", func(c *gin.Context) {
+			destDir := filepath.Join(conf.GoFile, c.PostForm("path"))
+			if !utils.IsPathSafe(destDir) {
+				c.JSON(http.StatusForbidden, gin.H{"stat": false, "msg": "forbidden"})
+				return
+			}
+			file, err := c.FormFile("file")
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"stat": false, "msg": "no file"})
+				return
+			}
+			dest := filepath.Join(destDir, filepath.Base(file.Filename))
+			if err := c.SaveUploadedFile(file, dest); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"stat": false, "msg": err.Error()})
+				return
+			}
+			c.JSON(http.StatusOK, gin.H{"stat": true})
+		})
+
 		// 新建文件
 		r.POST("/do/newfile", func(c *gin.Context) {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")

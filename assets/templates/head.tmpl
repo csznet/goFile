@@ -1,74 +1,368 @@
 {{define "public/header"}}
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-    <title>goFile</title>
-    <style>
-        .f-r{float: right;margin-left: 10px}
-        .c-b{clear: both}
-        body{max-width: 960px;}
-        a{text-decoration:none}
-        li:hover{background-color: rgb(235, 235, 235);}
-        @media (prefers-color-scheme: dark) {
-            body{
-                background-color: #333333;
-                color:rgb(226, 226, 226);
-            }
-        }
-        h2 a{
-            color:black!important;
-        }
-        body {
-            font-family: 'Arial', sans-serif;
-            margin: auto;
-            padding: 20px;
-            background-color: #f4f4f4;
-            color: #333;
-        }
-        a {
-            color: #337ab7;
-            text-decoration: none;
-        }
-        a:hover {
-            text-decoration: underline;
-        }
-        h2, h3 {
-            color: #444;
-        }
-        ul {
-            list-style-type: none;
-            padding: 0;
-        }
-        .c-b {
-            background-color: #fff;
-            border: 1px solid #ddd;
-            margin-bottom: 5px;
-            padding: 10px;
-            border-radius: 4px;
-        }
-        .f-r {
-            float: right;
-            margin-left: 10px;
-        }
-        form {
-            border-radius: 4px;
-            margin-top: 20px;
-        }
-        input[type="file"] {
-            margin-top: 10px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-        }
-        input[type="text"], input[type="file"] {
-            width: 100%;
-            padding: 10px;
-            margin: 5px 0 20px 0;
-            display: inline-block;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>goFile</title>
+<style>
+:root {
+  --bg:           #0d0d0d;
+  --surface:      #141414;
+  --surface-hi:   #1c1c1c;
+  --border:       #252525;
+  --border-hi:    #333;
+  --accent:       #a78bfa;
+  --accent-glow:  rgba(167,139,250,.1);
+  --text:         #e2e2e2;
+  --muted:        #4a4a4a;
+  --muted-hi:     #777;
+  --danger:       #f87171;
+  --danger-glow:  rgba(248,113,113,.1);
+  --font: ui-monospace,'SFMono-Regular',Menlo,'Cascadia Code',Consolas,monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+a { text-decoration: none; color: inherit; }
+
+/* ── Layout ── */
+.wrap {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 36px 28px 80px;
+}
+
+/* ── Header ── */
+.hd {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding-bottom: 20px;
+  margin-bottom: 28px;
+  border-bottom: 1px solid var(--border);
+}
+.logo {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: -.5px;
+  flex-shrink: 0;
+}
+.logo::before { content: '> '; opacity: .45; }
+/* ── Breadcrumb nav row ── */
+.nav-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  gap: 8px;
+  min-height: 22px;
+}
+.bc {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1px;
+  font-size: 12px;
+  flex: 1;
+  min-width: 0;
+}
+.bc a {
+  color: var(--muted-hi);
+  padding: 1px 3px;
+  border-radius: 2px;
+  transition: color .12s;
+}
+.bc a:hover { color: var(--accent); }
+.bc-sep { color: var(--muted); font-size: 10px; padding: 0 1px; user-select: none; }
+.bc-cur { color: var(--text) !important; }
+
+/* ── Back link ── */
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--muted-hi);
+  transition: color .15s;
+  letter-spacing: .3px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.back:hover { color: var(--accent); }
+.back::before { content: '←'; }
+
+/* ── Section label ── */
+.label {
+  font-size: 10px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 20px 0 8px;
+}
+
+/* ── File rows ── */
+.rows { list-style: none; }
+.row {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  transition: background .1s;
+}
+.rows .row:first-child { border-top: 1px solid var(--border); }
+.row:hover { background: var(--surface-hi); }
+.row::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 2px;
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity .15s;
+}
+.row:hover::before { opacity: 1; }
+
+.row-ico {
+  width: 28px;
+  text-align: center;
+  font-size: 10px;
+  flex-shrink: 0;
+  color: var(--muted);
+}
+.row-ico.d { color: var(--accent); }
+
+.row-name {
+  flex: 1;
+  padding: 9px 6px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.row-name a { color: var(--text); transition: color .12s; }
+.row-name a:hover { color: var(--accent); }
+
+.tag {
+  font-size: 9px;
+  border: 1px solid var(--border-hi);
+  color: var(--muted-hi);
+  padding: 0 4px;
+  border-radius: 2px;
+  margin-left: 6px;
+  vertical-align: middle;
+  letter-spacing: .5px;
+}
+
+.row-acts {
+  display: flex;
+  gap: 4px;
+  padding: 0 12px;
+  opacity: 0;
+  transition: opacity .15s;
+  flex-shrink: 0;
+}
+.row:hover .row-acts { opacity: 1; }
+
+.btn {
+  display: inline-block;
+  background: none;
+  border: 1px solid var(--border-hi);
+  color: var(--muted-hi);
+  font-family: var(--font);
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 3px;
+  cursor: pointer;
+  letter-spacing: .3px;
+  transition: all .12s;
+  white-space: nowrap;
+}
+.btn:hover        { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+.btn.del:hover    { border-color: var(--danger); color: var(--danger); background: var(--danger-glow); }
+
+/* ── Toolbar ── */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.tbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1px solid var(--border-hi);
+  color: var(--muted-hi);
+  font-family: var(--font);
+  font-size: 11px;
+  padding: 5px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all .15s;
+  letter-spacing: .3px;
+}
+.tbtn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+.tbtn .pfx { opacity: .5; font-size: 14px; line-height: 1; }
+
+/* ── Upload ── */
+.up-section { margin-top: 0; }
+.drop {
+  margin-top: 8px;
+  border: 1px dashed var(--border-hi);
+  border-radius: 5px;
+  padding: 18px;
+  text-align: center;
+  cursor: pointer;
+  position: relative;
+  transition: border-color .2s, background .2s;
+}
+.drop.over { border-color: var(--accent); background: var(--accent-glow); }
+.drop-hint { color: var(--muted-hi); font-size: 12px; pointer-events: none; }
+.drop-hint em { color: var(--accent); font-style: normal; }
+#fileInput { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+
+/* ── Progress ── */
+.prog {
+  margin-top: 12px;
+  display: none;
+}
+.prog-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--muted-hi);
+  margin-bottom: 6px;
+}
+.prog-track {
+  height: 2px;
+  background: var(--border-hi);
+  border-radius: 1px;
+  overflow: hidden;
+}
+.prog-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent), #c4b5fd);
+  border-radius: 1px;
+  transition: width .18s;
+}
+
+/* ── Msg page ── */
+.msg-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: 16px;
+}
+.msg-box {
+  border: 1px solid var(--border-hi);
+  border-radius: 6px;
+  padding: 36px 48px;
+  text-align: center;
+  background: var(--surface);
+}
+.msg-text { font-size: 13px; color: var(--text); margin-bottom: 20px; }
+.msg-link {
+  display: inline-block;
+  border: 1px solid var(--border-hi);
+  color: var(--muted-hi);
+  font-size: 11px;
+  padding: 5px 16px;
+  border-radius: 4px;
+  transition: all .15s;
+}
+.msg-link:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+
+/* ── Empty ── */
+.empty {
+  padding: 32px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+  border: 1px dashed var(--border);
+  border-radius: 5px;
+  margin-top: 8px;
+}
+
+/* ── API box ── */
+.api-box {
+  margin-top: 8px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  overflow: hidden;
+}
+.api-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.api-method {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 1.5px;
+  flex-shrink: 0;
+}
+.api-endpoint {
+  font-size: 11px;
+  color: var(--muted-hi);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.api-code-wrap {
+  position: relative;
+  background: var(--surface);
+}
+.api-code {
+  display: block;
+  padding: 12px 48px 12px 12px;
+  font-family: var(--font);
+  font-size: 11px;
+  color: var(--muted-hi);
+  white-space: pre;
+  overflow-x: auto;
+  line-height: 1.7;
+}
+.api-copy {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: 1px solid var(--border-hi);
+  color: var(--muted-hi);
+  font-family: var(--font);
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all .12s;
+  white-space: nowrap;
+}
+.api-copy:hover    { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+.api-copy.ok       { border-color: #4ade80; color: #4ade80; }
+
+/* ── Responsive ── */
+@media (max-width: 540px) {
+  .wrap { padding: 20px 16px 60px; }
+  .row-acts { padding: 0 6px; gap: 3px; }
+  .btn { font-size: 9px; padding: 2px 5px; }
+}
+</style>
 </head>
 {{end}}

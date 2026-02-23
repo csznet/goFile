@@ -80,6 +80,18 @@ var translations = map[string]map[LangType]string{
 		EN: "View",
 		ZH: "预览",
 	},
+	"api": {
+		EN: "API",
+		ZH: "API",
+	},
+	"copy": {
+		EN: "copy",
+		ZH: "复制",
+	},
+	"copied": {
+		EN: "copied",
+		ZH: "已复制",
+	},
 }
 
 func Translate(key string, lang LangType) string {

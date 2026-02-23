@@ -2,7 +2,16 @@
 <html lang="en">
 {{template "public/header" .}}
 <body>
-<h1>{{.msg}}</h1>
-<a href="{{.url}}">{{.title}}</a>
+<div class="wrap">
+  <div class="hd">
+    <a class="logo" href="/">goFile</a>
+  </div>
+  <div class="msg-wrap">
+    <div class="msg-box">
+      <p class="msg-text">{{.msg}}</p>
+      <a class="msg-link" href="{{.url}}">{{.title}}</a>
+    </div>
+  </div>
+</div>
 </body>
 </html>

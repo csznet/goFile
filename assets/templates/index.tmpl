@@ -1,271 +1,280 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 {{template "public/header" .}}
 <body>
-<h2><a href="/">goFile</a></h2>
-{{if .path}}
-<p>{{t "cd"}}:{{.path}}</p>
-{{end}}
-{{if .prev}}
-<a href="{{.prev}}">{{t "rl"}}</a>
-{{end}}
-{{$r := .reader}}
-<ul>
-    {{if .info.Dirs}}
-    <h3>{{t "dls"}}</h3>
+<div class="wrap">
+
+  <!-- header -->
+  <div class="hd">
+    <a class="logo" href="/">goFile</a>
+  </div>
+
+  <!-- breadcrumb + back -->
+  <div class="nav-row">
+    <nav class="bc" id="bc"></nav>
+    {{if .prev}}<a class="back" href="{{.prev}}">{{t "rl"}}</a>{{end}}
+  </div>
+  <script>
+  (function(){
+    var path = '{{.path}}';
+    var bc = document.getElementById('bc');
+    var html = '<a href="/">~</a>';
+    if (path) {
+      var parts = path.replace(/\/$/, '').split('/').filter(Boolean);
+      var acc = '';
+      for (var i = 0; i < parts.length; i++) {
+        acc += encodeURIComponent(parts[i]) + '/';
+        var isCur = i === parts.length - 1;
+        var label = parts[i].replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        html += '<span class="bc-sep">/</span>';
+        html += '<a' + (isCur ? ' class="bc-cur"' : '') + ' href="/d/' + acc + '">' + label + '</a>';
+      }
+    }
+    bc.innerHTML = html;
+  })();
+  </script>
+
+  {{$r := .reader}}
+
+  <!-- directories -->
+  {{if .info.Dirs}}
+  <div class="label">{{t "dls"}}</div>
+  <ul class="rows">
     {{$path := .path}}
-    {{range $item := .info.Dirs}}
-    <li class="c-b">
-        <a href="/d/{{$path}}{{.DirName}}">{{$item.DirName}}</a>
-        {{ if not $r }}
-        <span class="f-r"><a onclick="rm({{.DirPath}})">{{t "del"}}</a></span>
-        {{ end }}
+    {{range .info.Dirs}}
+    <li class="row">
+      <span class="row-ico d">▸</span>
+      <div class="row-name">
+        <a href="/d/{{$path}}{{.DirName}}">{{.DirName}}</a>
+      </div>
+      {{if not $r}}
+      <div class="row-acts">
+        <a class="btn del" onclick="rm({{.DirPath}})">{{t "del"}}</a>
+      </div>
+      {{end}}
     </li>
     {{end}}
-    {{end}}
-    {{if .info.Files}}
-    <h3>{{t "fls"}}</h3>
-    {{range $item := .info.Files}}
-    <li class="c-b">
-        <a target="_blank" href="/download/{{.FilePath}}">{{$item.FileName}}</a>
-        <span class="f-r"><a target="_blank" href="/view/{{.FilePath}}">{{t "view"}}</a></span>
-        {{ if not $r }}
-        <span class="f-r"><a onclick="edite({{.FilePath}})">{{t "edit"}}</a></span>
-        <span class="f-r"><a onclick="rm({{.FilePath}})">{{t "del"}}</a></span>
+  </ul>
+  {{end}}
+
+  <!-- files -->
+  {{if .info.Files}}
+  <div class="label">{{t "fls"}}</div>
+  <ul class="rows">
+    {{range .info.Files}}
+    <li class="row">
+      <span class="row-ico">—</span>
+      <div class="row-name">
+        <a target="_blank" href="/download/{{.FilePath}}">{{.FileName}}</a>
+        {{if .IsZip}}<span class="tag">zip</span>{{end}}
+      </div>
+      <div class="row-acts">
+        <a class="btn" target="_blank" href="/view/{{.FilePath}}">{{t "view"}}</a>
+        {{if not $r}}
+        <a class="btn" onclick="edite({{.FilePath}})">{{t "edit"}}</a>
         {{if .IsZip}}
-        <span class="f-r"><a onclick="unzip({{.FilePath}})">{{t "unzip"}}</a></span>
+        <a class="btn" onclick="unzip({{.FilePath}})">{{t "unzip"}}</a>
         {{end}}
-        {{ end }}
+        <a class="btn del" onclick="rm({{.FilePath}})">{{t "del"}}</a>
+        {{end}}
+      </div>
     </li>
     {{end}}
-    {{end}}
-</ul>
-{{ if not $r }}
-<a href="#" onclick="createNewFile()">{{t "nFile"}}</a>
-<a href="#" onclick="createNewDir()">{{t "nDir"}}</a>
-<h3>{{t "cUpFile"}}</h3>
-<form id="uploadForm" enctype="multipart/form-data">
-    <input type="file" name="file" id="fileInput">
-</form>
-<div id="upload-progress" style="display:none;margin-top:10px;">
-    <div style="font-size:13px;margin-bottom:4px;" id="upload-filename"></div>
-    <div style="background:#ddd;border-radius:4px;height:16px;width:100%;overflow:hidden;">
-        <div id="upload-bar" style="background:#337ab7;height:16px;width:0%;transition:width 0.15s;"></div>
+  </ul>
+  {{end}}
+
+  {{if and (not .info.Dirs) (not .info.Files)}}
+  <div class="empty">empty</div>
+  {{end}}
+
+  <!-- toolbar + upload -->
+  {{if not $r}}
+  <div class="toolbar">
+    <button class="tbtn" onclick="createNewFile()"><span class="pfx">+</span>{{t "nFile"}}</button>
+    <button class="tbtn" onclick="createNewDir()"><span class="pfx">+</span>{{t "nDir"}}</button>
+  </div>
+
+  <div class="label up-section">{{t "cUpFile"}}</div>
+  <div class="drop" id="dropZone">
+    <p class="drop-hint">drop here · or <em>browse</em></p>
+    <input type="file" id="fileInput">
+  </div>
+  <div class="prog" id="prog">
+    <div class="prog-meta">
+      <span id="prog-name"></span>
+      <span id="prog-pct">0%</span>
     </div>
-    <div style="font-size:12px;margin-top:4px;color:#555;" id="upload-percent">0%</div>
-</div>
-<script src="https://s3.pstatp.com/cdn/expire-1-M/jquery/3.2.1/jquery.min.js"></script>
-<script>
-    var CHUNK_SIZE = 2 * 1024 * 1024; // 2MB per chunk
+    <div class="prog-track"><div class="prog-fill" id="prog-fill"></div></div>
+  </div>
 
-    function getFileId(file) {
-        return file.name + '_' + file.size + '_' + file.lastModified;
+  <div class="label">{{t "api"}}</div>
+  <div class="api-box">
+    <div class="api-meta">
+      <span class="api-method">POST</span>
+      <span class="api-endpoint" id="api-endpoint"></span>
+    </div>
+    <div class="api-code-wrap">
+      <code class="api-code" id="api-code"></code>
+      <button class="api-copy" id="api-copy-btn" onclick="copyApi()">{{t "copy"}}</button>
+    </div>
+  </div>
+
+  <script src="https://s3.pstatp.com/cdn/expire-1-M/jquery/3.2.1/jquery.min.js"></script>
+  <script>
+    var CHUNK_SIZE = 2 * 1024 * 1024;
+
+    function getFileId(f) { return f.name + '_' + f.size + '_' + f.lastModified; }
+
+    function showProgress(name) {
+      document.getElementById('prog').style.display = 'block';
+      document.getElementById('prog-name').textContent = name;
+      updateProgress(0);
     }
-
-    function showProgress(filename) {
-        document.getElementById('upload-progress').style.display = 'block';
-        document.getElementById('upload-filename').textContent = filename;
-        updateProgress(0);
+    function updateProgress(pct) {
+      var p = Math.min(100, Math.round(pct));
+      document.getElementById('prog-fill').style.width = p + '%';
+      document.getElementById('prog-pct').textContent = p + '%';
     }
+    function hideProgress() { document.getElementById('prog').style.display = 'none'; }
 
-    function updateProgress(percent) {
-        var p = Math.min(100, Math.round(percent));
-        document.getElementById('upload-bar').style.width = p + '%';
-        document.getElementById('upload-percent').textContent = p + '%';
+    function checkChunks(fileId, total) {
+      return fetch('/do/chunk/check', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'fileId=' + encodeURIComponent(fileId) + '&totalChunks=' + total
+      }).then(function(r){return r.json();}).then(function(d){return d.uploaded||[];}).catch(function(){return[];});
     }
-
-    function hideProgress() {
-        document.getElementById('upload-progress').style.display = 'none';
+    function uploadChunk(fileId, idx, total, chunk, onProg) {
+      return new Promise(function(resolve, reject) {
+        var fd = new FormData();
+        fd.append('fileId', fileId); fd.append('chunkIndex', idx);
+        fd.append('totalChunks', total); fd.append('file', chunk);
+        var xhr = new XMLHttpRequest();
+        xhr.upload.addEventListener('progress', function(e) { if (e.lengthComputable) onProg(e.loaded/e.total); });
+        xhr.onload = function() {
+          try { var d = JSON.parse(xhr.responseText); d.stat ? resolve() : reject(new Error('chunk failed')); }
+          catch(e) { reject(e); }
+        };
+        xhr.onerror = function() { reject(new Error('network error')); };
+        xhr.open('POST', '/do/chunk/upload');
+        xhr.send(fd);
+      });
     }
-
-    function checkChunks(fileId, totalChunks) {
-        return fetch('/do/chunk/check', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-            body: 'fileId=' + encodeURIComponent(fileId) + '&totalChunks=' + totalChunks
-        }).then(function(r) { return r.json(); })
-          .then(function(d) { return d.uploaded || []; })
-          .catch(function() { return []; });
-    }
-
-    function uploadChunk(fileId, chunkIndex, totalChunks, chunk, onProgress) {
-        return new Promise(function(resolve, reject) {
-            var formData = new FormData();
-            formData.append('fileId', fileId);
-            formData.append('chunkIndex', chunkIndex);
-            formData.append('totalChunks', totalChunks);
-            formData.append('file', chunk);
-            var xhr = new XMLHttpRequest();
-            xhr.upload.addEventListener('progress', function(e) {
-                if (e.lengthComputable) onProgress(e.loaded / e.total);
-            });
-            xhr.onload = function() {
-                try {
-                    var data = JSON.parse(xhr.responseText);
-                    data.stat ? resolve() : reject(new Error('chunk upload failed'));
-                } catch(e) { reject(e); }
-            };
-            xhr.onerror = function() { reject(new Error('network error')); };
-            xhr.open('POST', '/do/chunk/upload');
-            xhr.send(formData);
-        });
-    }
-
-    function mergeChunks(fileId, totalChunks, fileName, path) {
-        return fetch('/do/chunk/merge', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-            body: 'fileId=' + encodeURIComponent(fileId) +
-                  '&totalChunks=' + totalChunks +
-                  '&fileName=' + encodeURIComponent(fileName) +
-                  '&path=' + encodeURIComponent(path)
-        }).then(function(r) { return r.json(); })
-          .then(function(d) { return d.stat; });
+    function mergeChunks(fileId, total, name, path) {
+      return fetch('/do/chunk/merge', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'fileId=' + encodeURIComponent(fileId) + '&totalChunks=' + total +
+              '&fileName=' + encodeURIComponent(name) + '&path=' + encodeURIComponent(path)
+      }).then(function(r){return r.json();}).then(function(d){return d.stat;});
     }
 
     async function uploadFile(file, uploadPath) {
-        var fileId = getFileId(file);
-        var totalChunks = Math.ceil(file.size / CHUNK_SIZE) || 1;
-        showProgress(file.name);
-
-        var uploadedList = await checkChunks(fileId, totalChunks);
-        var uploadedSet = new Set(uploadedList);
-        var completedChunks = uploadedList.length;
-
-        for (var i = 0; i < totalChunks; i++) {
-            if (uploadedSet.has(i)) {
-                updateProgress(completedChunks / totalChunks * 100);
-                continue;
-            }
-            var chunk = file.slice(i * CHUNK_SIZE, Math.min((i + 1) * CHUNK_SIZE, file.size));
-            var capturedI = i;
-            try {
-                await uploadChunk(fileId, capturedI, totalChunks, chunk, function(chunkProg) {
-                    updateProgress((completedChunks + chunkProg) / totalChunks * 100);
-                });
-                completedChunks++;
-                updateProgress(completedChunks / totalChunks * 100);
-            } catch(e) {
-                hideProgress();
-                alert('上传失败：' + e.message);
-                return;
-            }
-        }
-
-        updateProgress(100);
+      var fileId = getFileId(file);
+      var total  = Math.ceil(file.size / CHUNK_SIZE) || 1;
+      showProgress(file.name);
+      var done = await checkChunks(fileId, total);
+      var doneSet = new Set(done);
+      var completed = done.length;
+      for (var i = 0; i < total; i++) {
+        if (doneSet.has(i)) { updateProgress(completed / total * 100); continue; }
+        var chunk = file.slice(i * CHUNK_SIZE, Math.min((i+1) * CHUNK_SIZE, file.size));
+        var ci = i;
         try {
-            var ok = await mergeChunks(fileId, totalChunks, file.name, uploadPath);
-            hideProgress();
-            if (ok) {
-                if (confirm('上传成功，点击确认刷新')) location.reload();
-            } else {
-                alert('文件合并失败');
-            }
-        } catch(e) {
-            hideProgress();
-            alert('合并请求失败');
-        }
+          await uploadChunk(fileId, ci, total, chunk, function(p) {
+            updateProgress((completed + p) / total * 100);
+          });
+          completed++;
+          updateProgress(completed / total * 100);
+        } catch(e) { hideProgress(); alert('{{t "upFile"}} {{t "fl"}}：' + e.message); return; }
+      }
+      updateProgress(100);
+      try {
+        var ok = await mergeChunks(fileId, total, file.name, uploadPath);
+        hideProgress();
+        if (ok) { if (confirm('{{t "upFile"}} {{t "sc"}}')) location.reload(); }
+        else    { alert('{{t "upFile"}} {{t "fl"}}'); }
+      } catch(e) { hideProgress(); alert('{{t "reqFail"}}'); }
     }
 
-    // 拖放上传
-    var body = document.querySelector('body');
-    body.addEventListener('drop', function(event) {
-        event.preventDefault();
-        event.stopPropagation();
-        var file = event.dataTransfer.files[0];
-        if (file) uploadFile(file, '{{.path}}');
+    var dz = document.getElementById('dropZone');
+    document.body.addEventListener('dragover',  function(e) { e.preventDefault(); e.stopPropagation(); dz.classList.add('over'); });
+    document.body.addEventListener('dragleave', function(e) { if (!dz.contains(e.relatedTarget)) dz.classList.remove('over'); });
+    document.body.addEventListener('drop', function(e) {
+      e.preventDefault(); e.stopPropagation(); dz.classList.remove('over');
+      var f = e.dataTransfer.files[0];
+      if (f) uploadFile(f, '{{.path}}');
     });
-    body.addEventListener('dragover', function(event) {
-        event.preventDefault();
-        event.stopPropagation();
-    });
-
-    // 文件选择上传
     document.getElementById('fileInput').addEventListener('change', function() {
-        if (this.files.length > 0) uploadFile(this.files[0], '{{.path}}');
+      if (this.files.length > 0) uploadFile(this.files[0], '{{.path}}');
     });
 
     function createNewDir() {
-        var dirName = window.prompt("请输入文件夹名：");
-        if (dirName !== null) {
-            $.post("/do/newdir",{path:{{.path}},dirname:dirName},function(data,status){
-                if(status == "success"){
-                    if(data.stat){
-                        if(confirm("操作成功，点击确认刷新")){
-                            location.reload();
-                        }}else{
-                        alert("操作失败")
-                    }
-                }else{
-                    alert('{{t "reqFail"}}');
-                }
-            });
-        }
+      var n = window.prompt("{{t "nDir"}}:");
+      if (n !== null) $.post("/do/newdir", {path:{{.path}}, dirname:n}, function(d,s) {
+        if (s=="success") { if(d.stat) { if(confirm("OK")) location.reload(); } else alert("fail"); }
+        else alert('{{t "reqFail"}}');
+      });
     }
     function createNewFile() {
-        var fileName = window.prompt("请输入文件名：");
-        if (fileName !== null) {
-            $.post("/do/newfile",{path:{{.path}},filename:fileName},function(data,status){
-                if(status == "success"){
-                    if(data.stat){
-                        if(confirm("操作成功，点击确认刷新")){
-                            location.reload();
-                        }}else{
-                        alert("操作失败，可能文件已存在")
-                    }
-                }else{
-                    alert('{{t "reqFail"}}');
-                }
-            });
-        }
+      var n = window.prompt("{{t "nFile"}}:");
+      if (n !== null) $.post("/do/newfile", {path:{{.path}}, filename:n}, function(d,s) {
+        if (s=="success") { if(d.stat) { if(confirm("OK")) location.reload(); } else alert("fail"); }
+        else alert('{{t "reqFail"}}');
+      });
     }
-    function unzip($path){
-        if (confirm("你确定要解压"+$path+"吗？")){
-            $.post("/do/unzip",{path:$path},function(data,status){
-                if(status == "success"){
-                    if(data.stat){
-                        if(confirm("操作成功，点击确认刷新")){
-                            location.reload();
-                    }}else{
-                        alert("操作失败")
-                    }
-                }else{
-                    alert('{{t "reqFail"}}');
-                }
-            });
-        }
+    function unzip(p) {
+      if (confirm("unzip " + p + "?")) $.post("/do/unzip", {path:p}, function(d,s) {
+        if (s=="success") { if(d.stat) { if(confirm("OK")) location.reload(); } else alert("fail"); }
+        else alert('{{t "reqFail"}}');
+      });
     }
-    function rm($path){
-        if (confirm("你确定要删除"+$path+"吗？")){
-            $.post("/do/rm",{path:$path},function(data,status){
-                if(status == "success"){
-                    if(data.stat){
-                        if(confirm("操作成功，点击确认刷新")){
-                            location.reload();
-                        }}else{
-                        alert("操作失败")
-                    }
-                }else{
-                    alert('{{t "reqFail"}}');
-                }
-            });
-        }
+    function rm(p) {
+      if (confirm("delete " + p + "?")) $.post("/do/rm", {path:p}, function(d,s) {
+        if (s=="success") { if(d.stat) { if(confirm("OK")) location.reload(); } else alert("fail"); }
+        else alert('{{t "reqFail"}}');
+      });
     }
     function edite(path) {
-        var temp = document.createElement("form");
-        temp.action = "/edite";
-        temp.method = "post";
-        temp.target = "_blank";
-        temp.style.display = "none";
-        var opt = document.createElement("input");
-        opt.type = "text";
-        opt.name = "path";
-        opt.value = path;
-        temp.appendChild(opt);
-        document.body.appendChild(temp);
-        temp.submit();
-        return temp;
+      var f = document.createElement("form");
+      f.action="/edite"; f.method="post"; f.target="_blank"; f.style.display="none";
+      var i = document.createElement("input"); i.type="text"; i.name="path"; i.value=path;
+      f.appendChild(i); document.body.appendChild(f); f.submit();
     }
-</script>
-{{ end }}
+
+    (function() {
+      var origin = window.location.origin;
+      var uploadPath = '{{.path}}';
+      document.getElementById('api-endpoint').textContent = '/api/upload';
+      document.getElementById('api-code').textContent =
+        'curl -X POST ' + origin + '/api/upload \\\n' +
+        '  -F "path=' + uploadPath + '" \\\n' +
+        '  -F "file=@/path/to/file"';
+    })();
+    function copyApi() {
+      var text = document.getElementById('api-code').textContent;
+      var btn = document.getElementById('api-copy-btn');
+      function done() {
+        btn.textContent = '{{t "copied"}}'; btn.classList.add('ok');
+        setTimeout(function() { btn.textContent = '{{t "copy"}}'; btn.classList.remove('ok'); }, 2000);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(function() {
+          var ta = document.createElement('textarea'); ta.value = text;
+          ta.style.position = 'fixed'; ta.style.opacity = '0';
+          document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+          document.body.removeChild(ta); done();
+        });
+      } else {
+        var ta = document.createElement('textarea'); ta.value = text;
+        ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+        document.body.removeChild(ta); done();
+      }
+    }
+  </script>
+  {{end}}
+
+</div>
 </body>
 </html>

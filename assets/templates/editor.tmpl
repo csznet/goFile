@@ -1,151 +1,220 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-    <title>Editor</title>
-    <style type="text/css" media="screen">
-        body {
-            overflow: hidden;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.path}} — goFile</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        #editor {
-            margin: 0;
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            left: 0;
-            right: 0;
-        }
-        .bn{z-index: 9999;
-            float: right;
-            margin-right: 50px;
-            position: relative;
-            background-color: white;
-        }
-    </style>
+:root {
+  --bg:      #0d0d0d;
+  --bar:     #111111;
+  --border:  #222222;
+  --accent:  #a78bfa;
+  --muted:   #4a4a4a;
+  --muted-hi:#777;
+  --text:    #e2e2e2;
+  --danger:  #f87171;
+  --font: ui-monospace,'SFMono-Regular',Menlo,'Cascadia Code',Consolas,monospace;
+}
+
+body { overflow: hidden; background: var(--bg); }
+
+/* ── Top bar ── */
+#bar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 38px;
+  background: var(--bar);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 12px;
+  z-index: 9999;
+  font-family: var(--font);
+  font-size: 12px;
+}
+
+.bar-logo {
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: -.5px;
+  flex-shrink: 0;
+}
+.bar-logo::before { content: '> '; opacity: .45; }
+
+.bar-sep { color: var(--muted); flex-shrink: 0; }
+
+.bar-path {
+  color: var(--muted-hi);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+/* modified dot */
+#dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+  display: none;
+  box-shadow: 0 0 6px var(--accent);
+}
+
+.bar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.bar-hint {
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: .3px;
+}
+
+#saveBtn {
+  background: none;
+  border: 1px solid #333;
+  color: var(--muted-hi);
+  font-family: var(--font);
+  font-size: 11px;
+  padding: 3px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  letter-spacing: .3px;
+  transition: all .12s;
+}
+#saveBtn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(167,139,250,.1);
+}
+#saveBtn.saved {
+  border-color: #4ade80;
+  color: #4ade80;
+}
+
+/* ── Ace editor ── */
+#editor {
+  position: fixed;
+  top: 38px; bottom: 0; left: 0; right: 0;
+  border: none;
+  outline: none;
+}
+</style>
 </head>
 <body>
-<div class="bn">
-<buton onclick="save()">保存</buton>
+
+<div id="bar">
+  <span class="bar-logo">goFile</span>
+  <span class="bar-sep">/</span>
+  <span class="bar-path">{{.path}}</span>
+  <span id="dot"></span>
+  <div class="bar-right">
+    <span class="bar-hint" id="shortcutHint"></span>
+    <button id="saveBtn" onclick="save()">Save</button>
+  </div>
 </div>
+
 <pre id="editor">
 {{.data}}
 </pre>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.16.0/ace.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.16.0/ace.min.js" charset="utf-8"></script>
 <script src="https://s3.pstatp.com/cdn/expire-1-M/jquery/3.2.1/jquery.min.js"></script>
 <script>
     var editor = ace.edit("editor");
-    editor.setTheme("ace/theme/twilight");
-    var moData = editor.getValue();
+    editor.setTheme("ace/theme/tomorrow_night_bright");
+    editor.setOptions({
+        fontSize: "13px",
+        tabSize: 2,
+        useSoftTabs: true,
+        showPrintMargin: false,
+        highlightActiveLine: true
+    });
+    var moData  = editor.getValue();
     var curPath = "{{.path}}";
-    var extension = curPath.split(".").pop();
+    var dot     = document.getElementById("dot");
+    var saveBtn = document.getElementById("saveBtn");
+
+    // Show keyboard shortcut hint
+    var isMac = navigator.userAgent.indexOf("Mac") !== -1;
+    document.getElementById("shortcutHint").textContent = isMac ? "⌘S" : "Ctrl+S";
+
+    // File type detection
+    var extension = curPath.split(".").pop().toLowerCase();
     var types = {
-        "html": "html",
-        "tmpl": "html",
-        "htm": "html",
-        "xml": "xml",
-        "xhtml": "xml",
-        "svg": "svg",
-        "css": "css",
-        "scss": "scss",
-        "sass": "sass",
-        "less": "less",
-        "js": "javascript",
-        "ts": "typescript",
-        "jsx": "jsx",
-        "tsx": "tsx",
-        "coffee": "coffee",
-        "json": "json",
-        "md": "markdown",
-        "markdown": "markdown",
-        "txt": "text",
-        "bat": "batchfile",
-        "sh": "sh",
-        "bash": "sh",
-        "ps1": "powershell",
-        "psm1": "powershell",
-        "psd1": "powershell",
-        "go": "golang",
-        "java": "java",
-        "c": "c_cpp",
-        "cpp": "c_cpp",
-        "cxx": "c_cpp",
-        "cc": "c_cpp",
-        "h": "c_cpp",
-        "hpp": "c_cpp",
-        "hxx": "c_cpp",
-        "hh": "c_cpp",
-        "php": "php",
-        "py": "python",
-        "rb": "ruby",
-        "swift": "swift",
-        "vb": "vbscript",
-        "vbs": "vbscript",
-        "sql": "sql",
-        "yaml": "yaml",
-        "yml": "yaml",
-        "ini": "ini",
-        "conf": "ini",
-        "cfg": "ini",
-        "log": "log",
-        "bat": "batchfile",
-        "cmd": "batchfile",
-        "asp": "asp",
-        "aspx": "asp",
-        "jsp": "jsp",
-        "ejs": "ejs",
-        "pug": "jade",
-        "jade": "jade"
+        html:"html", tmpl:"html", htm:"html", xml:"xml", xhtml:"xml", svg:"svg",
+        css:"css", scss:"scss", sass:"sass", less:"less",
+        js:"javascript", ts:"typescript", jsx:"jsx", tsx:"tsx", coffee:"coffee",
+        json:"json", md:"markdown", markdown:"markdown", txt:"text",
+        bat:"batchfile", cmd:"batchfile", sh:"sh", bash:"sh",
+        ps1:"powershell", psm1:"powershell", psd1:"powershell",
+        go:"golang", java:"java",
+        c:"c_cpp", cpp:"c_cpp", cxx:"c_cpp", cc:"c_cpp",
+        h:"c_cpp", hpp:"c_cpp", hxx:"c_cpp", hh:"c_cpp",
+        php:"php", py:"python", rb:"ruby", swift:"swift",
+        vb:"vbscript", vbs:"vbscript", sql:"sql",
+        yaml:"yaml", yml:"yaml", ini:"ini", conf:"ini", cfg:"ini", log:"log",
+        asp:"asp", aspx:"asp", jsp:"jsp", ejs:"ejs", pug:"jade", jade:"jade"
     };
-    if (types.hasOwnProperty(extension)) {
-        var ext = types[extension];
-        editor.session.setMode("ace/mode/"+ext);
-    }else{
-        editor.session.setMode("ace/mode/text");
-    }
-    document.addEventListener('keydown', function(event) {
-        const userAgent = navigator.userAgent;
-        if ((userAgent.indexOf('Mac') !== -1 ? event.metaKey : event.ctrlKey) && event.key === 's') {
-            event.preventDefault(); // 阻止浏览器默认行为
-            save(); // 调用 save 函数
+    editor.session.setMode("ace/mode/" + (types[extension] || "text"));
+
+    // Modified indicator
+    editor.on("change", function() {
+        var changed = editor.getValue() !== moData;
+        dot.style.display = changed ? "block" : "none";
+    });
+
+    // Keyboard shortcut
+    document.addEventListener("keydown", function(e) {
+        if ((isMac ? e.metaKey : e.ctrlKey) && e.key === "s") {
+            e.preventDefault();
+            save();
         }
     });
-    window.addEventListener('beforeunload', function(event) {
+
+    // Unsaved changes warning
+    window.addEventListener("beforeunload", function(e) {
         if (editor.getValue() !== moData) {
-            event.preventDefault(); // 阻止浏览器默认行为
-            event.returnValue = ''; // 必须设置此属性才能弹出提示框
-            if (!confirm('您的修改尚未保存。')) {
-                // 如果用户不确定，则停留在当前页面
-                return;
-            }
+            e.preventDefault();
+            e.returnValue = "";
         }
     });
-    function save(index){
-        // console.log(editor.getValue())
-        if (confirm("确认保存吗？")){
-            $.post("/do/save",{path:curPath,data:editor.getValue()},function(data, status){
-                if(status == "success"){
-                    if(data.stat){
-                    moData = editor.getValue(); // 更新moData
-                        if(confirm("保存，点击确认刷新")){
-                            var temp = document.createElement("form"); //创建form表单
-                            temp.action = "/edite";
-                            temp.method = "post";
-                            temp.style.display = "none";//表单样式为隐藏
-                            var opt =document.createElement("input");  //添加input标签
-                            opt.type="text";   //类型为text
-                            opt.name = "path";    //设置name属性
-                            opt.value = '{{.path}}';   //设置value属性
-                            temp.appendChild(opt);
-                            document.body.appendChild(temp);
-                            temp.submit();
-                            return temp;
-                        }}else{
-                        alert("保存失败")
+
+    function save() {
+        if (confirm("确认保存吗？")) {
+            $.post("/do/save", {path: curPath, data: editor.getValue()}, function(data, status) {
+                if (status === "success") {
+                    if (data.stat) {
+                        moData = editor.getValue();
+                        dot.style.display = "none";
+                        saveBtn.classList.add("saved");
+                        saveBtn.textContent = "Saved";
+                        setTimeout(function() {
+                            saveBtn.classList.remove("saved");
+                            saveBtn.textContent = "Save";
+                        }, 2000);
+                        if (confirm("保存成功，点击确认刷新")) {
+                            var f = document.createElement("form");
+                            f.action = "/edite"; f.method = "post";
+                            f.style.display = "none";
+                            var i = document.createElement("input");
+                            i.type = "text"; i.name = "path"; i.value = "{{.path}}";
+                            f.appendChild(i); document.body.appendChild(f); f.submit();
+                        }
+                    } else {
+                        alert("保存失败");
                     }
-                }else{
+                } else {
                     alert("请求失败");
                 }
             });
