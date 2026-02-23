@@ -87,13 +87,16 @@
   <div class="empty">empty</div>
   {{end}}
 
-  <!-- toolbar + upload -->
+  <!-- toolbar -->
   {{if not $r}}
   <div class="toolbar">
     <button class="tbtn" onclick="createNewFile()"><span class="pfx">+</span>{{t "nFile"}}</button>
     <button class="tbtn" onclick="createNewDir()"><span class="pfx">+</span>{{t "nDir"}}</button>
   </div>
+  {{end}}
 
+  <!-- upload -->
+  {{if .allowUpload}}
   <div class="label up-section">{{t "cUpFile"}}</div>
   <div class="drop" id="dropZone">
     <p class="drop-hint">drop here · or <em>browse</em></p>
@@ -209,6 +212,7 @@
       if (this.files.length > 0) uploadFile(this.files[0], '{{.path}}');
     });
 
+    {{if not $r}}
     function createNewDir() {
       var n = window.prompt("{{t "nDir"}}:");
       if (n !== null) $.post("/do/newdir", {path:{{.path}}, dirname:n}, function(d,s) {
@@ -241,6 +245,7 @@
       var i = document.createElement("input"); i.type="text"; i.name="path"; i.value=path;
       f.appendChild(i); document.body.appendChild(f); f.submit();
     }
+    {{end}}
 
     (function() {
       var origin = window.location.origin;

@@ -23,6 +23,7 @@ import (
 
 var (
 	reader       = false
+	uploader     = false
 	templateSets map[i18n.LangType]*template.Template
 )
 
@@ -67,7 +68,8 @@ func LangMiddleware() gin.HandlerFunc {
 func renderHTML(c *gin.Context, name string, data gin.H) {
 	c.Header("Content-Type", "text/html; charset=utf-8")
 	lang := getLang(c)
-	data["htmlLang"] = map[i18n.LangType]string{i18n.ZH: "zh-CN", i18n.EN: "en"}[lang]
+	data["htmlLang"]    = map[i18n.LangType]string{i18n.ZH: "zh-CN", i18n.EN: "en"}[lang]
+	data["allowUpload"] = !reader || uploader
 	if err := templateSets[lang].ExecuteTemplate(c.Writer, name, data); err != nil {
 		_ = c.AbortWithError(http.StatusInternalServerError, err)
 	}
@@ -160,8 +162,8 @@ func web() {
 		})
 	})
 
-	// 非阅读模式
-	if !reader {
+	// 上传路由（普通模式 + -ru 模式均开放）
+	if !reader || uploader {
 		r.POST("/do/upload/*path", func(c *gin.Context) {
 			cPath := strings.Trim(c.Param("path"), "/")
 			lang := getLang(c)
@@ -309,6 +311,10 @@ func web() {
 			c.JSON(http.StatusOK, gin.H{"stat": true})
 		})
 
+	}
+
+	// 编辑路由（仅普通模式）
+	if !reader {
 		// 新建文件
 		r.POST("/do/newfile", func(c *gin.Context) {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
@@ -423,10 +429,15 @@ func web() {
 func init() {
 	flag.StringVar(&conf.GoFile, "path", "./", "goFile path")
 	flag.StringVar(&conf.GoFilePort, "port", "8089", "goFile web port")
-	readerPtr := flag.Bool("r", false, "Enable reader")
+	readerPtr   := flag.Bool("r",  false, "Read-only mode")
+	uploaderPtr := flag.Bool("ru", false, "Read-only + allow upload")
 	flag.Parse()
 	if *readerPtr {
 		reader = true
+	}
+	if *uploaderPtr {
+		reader   = true
+		uploader = true
 	}
 }
 
