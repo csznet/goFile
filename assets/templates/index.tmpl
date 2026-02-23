@@ -8,6 +8,14 @@
   <div class="hd">
     <a class="logo" href="/">goFile</a>
   </div>
+  {{if .diskTotal}}
+  <div class="disk">
+    <div class="disk-bar"><div class="disk-fill{{if gt .diskPct 85}} warn{{end}}" style="width:{{.diskPct}}%"></div></div>
+    <span class="disk-text">{{.diskFree}} free · {{.diskTotal}}</span>
+  </div>
+  {{else}}
+  <div class="hd-line"></div>
+  {{end}}
 
   <!-- breadcrumb + back -->
   <div class="nav-row">
@@ -33,13 +41,6 @@
     bc.innerHTML = html;
   })();
   </script>
-
-  {{if .diskTotal}}
-  <div class="disk">
-    <div class="disk-bar"><div class="disk-fill{{if gt .diskPct 85}} warn{{end}}" style="width:{{.diskPct}}%"></div></div>
-    <span class="disk-text">{{.diskFree}} free · {{.diskTotal}}</span>
-  </div>
-  {{end}}
 
   {{$r := .reader}}
 
@@ -82,6 +83,7 @@
         {{if .IsZip}}
         <a class="btn" onclick="unzip({{.FilePath}})">{{t "unzip"}}</a>
         {{end}}
+        <a class="btn" onclick="md5file({{.FilePath}})">MD5</a>
         <a class="btn del" onclick="rm({{.FilePath}})">{{t "del"}}</a>
         {{end}}
       </div>
@@ -122,10 +124,10 @@
     <div class="api-meta">
       <span class="api-method">POST</span>
       <span class="api-endpoint" id="api-endpoint"></span>
+      <button class="api-copy" id="api-copy-btn" onclick="copyApi()">{{t "copy"}}</button>
     </div>
     <div class="api-code-wrap">
       <code class="api-code" id="api-code"></code>
-      <button class="api-copy" id="api-copy-btn" onclick="copyApi()">{{t "copy"}}</button>
     </div>
   </div>
 
@@ -251,6 +253,14 @@
       f.action="/edite"; f.method="post"; f.target="_blank"; f.style.display="none";
       var i = document.createElement("input"); i.type="text"; i.name="path"; i.value=path;
       f.appendChild(i); document.body.appendChild(f); f.submit();
+    }
+    function md5file(p) {
+      $.post("/do/md5", {path: p}, function(d, s) {
+        if (s === "success") {
+          if (d.stat) { alert("MD5: " + d.hash); location.reload(); }
+          else alert("fail");
+        } else alert('{{t "reqFail"}}');
+      });
     }
     {{end}}
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/md5"
 	"flag"
 	"fmt"
 	"goFile/assets"
@@ -440,6 +441,36 @@ func web() {
 			}
 			err := os.RemoveAll(path)
 			c.JSON(http.StatusOK, gin.H{"stat": err == nil})
+		})
+
+		// 生成 MD5 校验文件
+		r.POST("/do/md5", func(c *gin.Context) {
+			filePath := filepath.Join(conf.GoFile, c.PostForm("path"))
+			if !utils.IsPathSafe(filePath) {
+				c.JSON(http.StatusOK, gin.H{"stat": false})
+				return
+			}
+			f, err := os.Open(filePath)
+			if err != nil {
+				c.JSON(http.StatusOK, gin.H{"stat": false})
+				return
+			}
+			h := md5.New()
+			_, err = io.Copy(h, f)
+			f.Close()
+			if err != nil {
+				c.JSON(http.StatusOK, gin.H{"stat": false})
+				return
+			}
+			hash := fmt.Sprintf("%x", h.Sum(nil))
+			md5Path := filePath + ".md5"
+			content := hash + "  " + filepath.Base(filePath) + "\n"
+			if err := os.WriteFile(md5Path, []byte(content), 0644); err != nil {
+				c.JSON(http.StatusOK, gin.H{"stat": false})
+				return
+			}
+			logAction(c, "新建", c.PostForm("path")+".md5")
+			c.JSON(http.StatusOK, gin.H{"stat": true, "hash": hash})
 		})
 	}
 

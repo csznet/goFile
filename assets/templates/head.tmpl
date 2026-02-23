@@ -43,9 +43,8 @@ a { text-decoration: none; color: inherit; }
   display: flex;
   align-items: baseline;
   gap: 12px;
-  padding-bottom: 20px;
-  margin-bottom: 28px;
-  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+  margin-bottom: 0;
 }
 .logo {
   font-size: 15px;
@@ -286,11 +285,12 @@ a { text-decoration: none; color: inherit; }
 .msg-link:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
 
 /* ── Disk ── */
-.disk { margin: 6px 0 10px; }
-.disk-bar { height: 2px; background: var(--border); border-radius: 2px; overflow: hidden; margin-bottom: 5px; }
-.disk-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width .4s; }
+.disk { margin: 0 0 22px; }
+.disk-bar { height: 1px; background: var(--border); overflow: hidden; margin-bottom: 5px; }
+.disk-fill { height: 100%; background: var(--accent); transition: width .4s; }
 .disk-fill.warn { background: #f87171; }
 .disk-text { font-size: 10px; color: var(--muted); letter-spacing: .3px; }
+.hd-line { height: 1px; background: var(--border); margin-bottom: 22px; }
 
 /* ── Empty ── */
 .empty {
@@ -333,12 +333,11 @@ a { text-decoration: none; color: inherit; }
   text-overflow: ellipsis;
 }
 .api-code-wrap {
-  position: relative;
   background: var(--surface);
 }
 .api-code {
   display: block;
-  padding: 12px 48px 12px 12px;
+  padding: 12px;
   font-family: var(--font);
   font-size: 11px;
   color: var(--muted-hi);
@@ -347,9 +346,8 @@ a { text-decoration: none; color: inherit; }
   line-height: 1.7;
 }
 .api-copy {
-  position: absolute;
-  top: 8px;
-  right: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
   background: none;
   border: 1px solid var(--border-hi);
   color: var(--muted-hi);
@@ -367,7 +365,7 @@ a { text-decoration: none; color: inherit; }
 /* ── Responsive ── */
 @media (max-width: 540px) {
   .wrap { padding: 20px 16px 60px; }
-  .row-acts { padding: 0 6px; gap: 3px; }
+  .row-acts { padding: 0 6px; gap: 3px; opacity: 1; }
   .btn { font-size: 9px; padding: 2px 5px; }
 }
 </style>
