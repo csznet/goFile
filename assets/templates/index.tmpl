@@ -34,6 +34,13 @@
   })();
   </script>
 
+  {{if .diskTotal}}
+  <div class="disk">
+    <div class="disk-bar"><div class="disk-fill{{if gt .diskPct 85}} warn{{end}}" style="width:{{.diskPct}}%"></div></div>
+    <span class="disk-text">{{.diskFree}} free · {{.diskTotal}}</span>
+  </div>
+  {{end}}
+
   {{$r := .reader}}
 
   <!-- directories -->

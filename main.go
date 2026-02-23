@@ -64,12 +64,32 @@ func LangMiddleware() gin.HandlerFunc {
 	}
 }
 
+// formatBytes returns a human-readable byte size string.
+func formatBytes(b uint64) string {
+	const unit = 1024
+	if b < unit {
+		return fmt.Sprintf("%d B", b)
+	}
+	div, exp := uint64(unit), 0
+	for n := b / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB", float64(b)/float64(div), "KMGTPE"[exp])
+}
+
 // renderHTML executes the named template with the per-request language set.
 func renderHTML(c *gin.Context, name string, data gin.H) {
 	c.Header("Content-Type", "text/html; charset=utf-8")
 	lang := getLang(c)
 	data["htmlLang"]    = map[i18n.LangType]string{i18n.ZH: "zh-CN", i18n.EN: "en"}[lang]
 	data["allowUpload"] = !reader || uploader
+	if total, free := utils.DiskUsage(conf.GoFile); total > 0 {
+		used := total - free
+		data["diskPct"]   = int(used * 100 / total)
+		data["diskFree"]  = formatBytes(free)
+		data["diskTotal"] = formatBytes(total)
+	}
 	if err := templateSets[lang].ExecuteTemplate(c.Writer, name, data); err != nil {
 		_ = c.AbortWithError(http.StatusInternalServerError, err)
 	}

@@ -285,6 +285,13 @@ a { text-decoration: none; color: inherit; }
 }
 .msg-link:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
 
+/* ── Disk ── */
+.disk { margin: 6px 0 10px; }
+.disk-bar { height: 2px; background: var(--border); border-radius: 2px; overflow: hidden; margin-bottom: 5px; }
+.disk-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width .4s; }
+.disk-fill.warn { background: #f87171; }
+.disk-text { font-size: 10px; color: var(--muted); letter-spacing: .3px; }
+
 /* ── Empty ── */
 .empty {
   padding: 32px;
