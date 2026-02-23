@@ -9,12 +9,14 @@ import (
 	"goFile/utils"
 	"html/template"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -45,16 +47,16 @@ func getLang(c *gin.Context) i18n.LangType {
 	if lang, ok := c.Get("lang"); ok {
 		return lang.(i18n.LangType)
 	}
-	return i18n.EN
+	return i18n.ZH
 }
 
 // LangMiddleware detects the request language and stores it in the context.
 func LangMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		lang := c.GetHeader("Accept-Language")
-		langType := i18n.EN
-		if strings.Contains(lang, "zh-CN") {
-			langType = i18n.ZH
+		langType := i18n.ZH
+		if strings.Contains(lang, "en") && !strings.Contains(lang, "zh") {
+			langType = i18n.EN
 		}
 		c.Set("lang", langType)
 		c.Next()
@@ -64,9 +66,21 @@ func LangMiddleware() gin.HandlerFunc {
 // renderHTML executes the named template with the per-request language set.
 func renderHTML(c *gin.Context, name string, data gin.H) {
 	c.Header("Content-Type", "text/html; charset=utf-8")
-	if err := templateSets[getLang(c)].ExecuteTemplate(c.Writer, name, data); err != nil {
+	lang := getLang(c)
+	data["htmlLang"] = map[i18n.LangType]string{i18n.ZH: "zh-CN", i18n.EN: "en"}[lang]
+	if err := templateSets[lang].ExecuteTemplate(c.Writer, name, data); err != nil {
 		_ = c.AbortWithError(http.StatusInternalServerError, err)
 	}
+}
+
+// logAction prints a single-line access log entry.
+func logAction(c *gin.Context, typ, path string) {
+	fmt.Printf("%s  [%s]  %s  %s\n",
+		time.Now().Format("2006-01-02 15:04:05"),
+		typ,
+		c.ClientIP(),
+		path,
+	)
 }
 
 // urlForPath returns the redirect URL for a given relative directory path.
@@ -93,10 +107,12 @@ func web() {
 	initTemplates()
 
 	gin.SetMode(gin.ReleaseMode)
-	r := gin.Default()
+	r := gin.New()
+	r.Use(gin.Recovery())
 	r.Use(LangMiddleware())
 
 	r.GET("/", func(c *gin.Context) {
+		logAction(c, "浏览", "/")
 		renderHTML(c, "index.tmpl", gin.H{
 			"info":   utils.GetFiles(conf.GoFile + "*"),
 			"path":   "",
@@ -110,6 +126,7 @@ func web() {
 			c.Status(http.StatusForbidden)
 			return
 		}
+		logAction(c, "查看", c.Param("path"))
 		c.File(absPath)
 	})
 
@@ -120,6 +137,7 @@ func web() {
 			c.Status(http.StatusForbidden)
 			return
 		}
+		logAction(c, "下载", cPath)
 		c.FileAttachment(absPath, filepath.Base(cPath))
 	})
 
@@ -129,6 +147,7 @@ func web() {
 			c.Redirect(http.StatusMovedPermanently, "/")
 			return
 		}
+		logAction(c, "浏览", rawPath)
 		cPath := strings.TrimPrefix(rawPath, "/")
 		cPath = strings.TrimSuffix(cPath, "/")
 		prev := utils.GetPrevPath(cPath)
@@ -163,9 +182,12 @@ func web() {
 				return
 			}
 
+			dest := filepath.Join(destDir, filepath.Base(file.Filename))
 			stat := i18n.Translate("sc", lang)
-			if err := c.SaveUploadedFile(file, filepath.Join(destDir, filepath.Base(file.Filename))); err != nil {
+			if err := c.SaveUploadedFile(file, dest); err != nil {
 				stat = i18n.Translate("fl", lang)
+			} else {
+				logAction(c, "上传", filepath.Join(cPath, filepath.Base(file.Filename)))
 			}
 			renderHTML(c, "msg.tmpl", gin.H{
 				"msg":   i18n.Translate("upFile", lang) + stat,
@@ -262,6 +284,7 @@ func web() {
 					return
 				}
 			}
+			logAction(c, "上传", filepath.Join(c.PostForm("path"), filepath.Base(c.PostForm("fileName"))))
 			c.JSON(http.StatusOK, gin.H{"stat": true})
 		})
 
@@ -282,6 +305,7 @@ func web() {
 				c.JSON(http.StatusInternalServerError, gin.H{"stat": false, "msg": err.Error()})
 				return
 			}
+			logAction(c, "上传", filepath.Join(c.PostForm("path"), filepath.Base(file.Filename)))
 			c.JSON(http.StatusOK, gin.H{"stat": true})
 		})
 
@@ -295,6 +319,7 @@ func web() {
 				if err == nil {
 					f.Close()
 					ok = true
+					logAction(c, "新建", filepath.Join(c.PostForm("path"), filepath.Base(c.PostForm("filename"))))
 				}
 			}
 			c.JSON(http.StatusOK, gin.H{"stat": ok})
@@ -308,6 +333,7 @@ func web() {
 			if utils.IsPathSafe(dirPath) {
 				if err := os.Mkdir(dirPath, 0755); err == nil {
 					ok = true
+					logAction(c, "新建", filepath.Join(c.PostForm("path"), filepath.Base(c.PostForm("dirname")))+"/")
 				}
 			}
 			c.JSON(http.StatusOK, gin.H{"stat": ok})
@@ -351,6 +377,9 @@ func web() {
 				data = data[:len(data)-1] // 去掉新行
 			}
 			_, err = file.WriteString(data)
+			if err == nil {
+				logAction(c, "保存", c.PostForm("path"))
+			}
 			c.JSON(http.StatusOK, gin.H{"stat": err == nil})
 		})
 
@@ -361,6 +390,7 @@ func web() {
 				c.Status(http.StatusForbidden)
 				return
 			}
+			logAction(c, "编辑", c.PostForm("path"))
 			file, err := os.Open(filePath)
 			if err != nil {
 				c.Status(http.StatusNotFound)
@@ -400,6 +430,37 @@ func init() {
 	}
 }
 
+func localIPs() []string {
+	var ips []string
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return ips
+	}
+	for _, iface := range ifaces {
+		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
+			continue
+		}
+		addrs, err := iface.Addrs()
+		if err != nil {
+			continue
+		}
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+			if ip == nil || ip.To4() == nil || ip.IsLoopback() || ip.IsLinkLocalUnicast() {
+				continue
+			}
+			ips = append(ips, ip.String())
+		}
+	}
+	return ips
+}
+
 func main() {
 	if conf.GoFile == "./" {
 		cwd, err := os.Getwd()
@@ -408,7 +469,12 @@ func main() {
 		}
 	}
 	conf.GoFile = filepath.Clean(conf.GoFile) + string(filepath.Separator)
-	fmt.Println("Run Directory:" + conf.GoFile)
-	fmt.Println("goFile Port is " + conf.GoFilePort)
+	fmt.Println(strings.Repeat("-", 44))
+	fmt.Println("Directory : " + conf.GoFile)
+	fmt.Println("Port      : " + conf.GoFilePort)
+	for _, ip := range localIPs() {
+		fmt.Println("Access    : http://" + ip + ":" + conf.GoFilePort)
+	}
+	fmt.Println(strings.Repeat("-", 44))
 	web()
 }
