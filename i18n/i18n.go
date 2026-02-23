@@ -92,6 +92,10 @@ var translations = map[string]map[LangType]string{
 		EN: "copied",
 		ZH: "已复制",
 	},
+	"skip": {
+		EN: " skipped (already exists)",
+		ZH: " 跳过（文件已存在且大小相同）",
+	},
 }
 
 func Translate(key string, lang LangType) string {

@@ -39,6 +39,7 @@ func initTemplates() {
 				"t": func(key string) string {
 					return i18n.Translate(key, l)
 				},
+				"hasSuffix": strings.HasSuffix,
 			}).ParseFS(assets.Templates, "templates/*"),
 		)
 	}
@@ -206,6 +207,14 @@ func web() {
 			}
 
 			dest := filepath.Join(destDir, filepath.Base(file.Filename))
+			if info, err := os.Stat(dest); err == nil && info.Size() == file.Size {
+				renderHTML(c, "msg.tmpl", gin.H{
+					"msg":   i18n.Translate("upFile", lang) + i18n.Translate("skip", lang),
+					"title": i18n.Translate("rt", lang),
+					"url":   urlForPath(cPath),
+				})
+				return
+			}
 			stat := i18n.Translate("sc", lang)
 			if err := c.SaveUploadedFile(file, dest); err != nil {
 				stat = i18n.Translate("fl", lang)
@@ -285,6 +294,13 @@ func web() {
 				return
 			}
 			destPath := filepath.Join(destDir, filepath.Base(c.PostForm("fileName")))
+			if fileSize, err := strconv.ParseInt(c.PostForm("fileSize"), 10, 64); err == nil {
+				if info, err := os.Stat(destPath); err == nil && info.Size() == fileSize {
+					os.RemoveAll(dir)
+					c.JSON(http.StatusOK, gin.H{"stat": true, "skipped": true})
+					return
+				}
+			}
 			out, err := os.Create(destPath)
 			if err != nil {
 				c.JSON(http.StatusOK, gin.H{"stat": false})
@@ -324,6 +340,10 @@ func web() {
 				return
 			}
 			dest := filepath.Join(destDir, filepath.Base(file.Filename))
+			if info, err := os.Stat(dest); err == nil && info.Size() == file.Size {
+				c.JSON(http.StatusOK, gin.H{"stat": true, "skipped": true, "msg": "already exists"})
+				return
+			}
 			if err := c.SaveUploadedFile(file, dest); err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"stat": false, "msg": err.Error()})
 				return

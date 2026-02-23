@@ -83,7 +83,7 @@
         {{if .IsZip}}
         <a class="btn" onclick="unzip({{.FilePath}})">{{t "unzip"}}</a>
         {{end}}
-        <a class="btn" onclick="md5file({{.FilePath}})">MD5</a>
+        {{if not (hasSuffix .FileName ".md5")}}<a class="btn" onclick="md5file({{.FilePath}})">MD5</a>{{end}}
         <a class="btn del" onclick="rm({{.FilePath}})">{{t "del"}}</a>
         {{end}}
       </div>
@@ -172,13 +172,22 @@
         xhr.send(fd);
       });
     }
-    function mergeChunks(fileId, total, name, path) {
+    function showToast(msg, warn) {
+      var t = document.createElement('div');
+      t.className = 'toast' + (warn ? ' warn' : '');
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(function() { t.remove(); }, 2400);
+    }
+
+    function mergeChunks(fileId, total, name, path, size) {
       return fetch('/do/chunk/merge', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: 'fileId=' + encodeURIComponent(fileId) + '&totalChunks=' + total +
-              '&fileName=' + encodeURIComponent(name) + '&path=' + encodeURIComponent(path)
-      }).then(function(r){return r.json();}).then(function(d){return d.stat;});
+              '&fileName=' + encodeURIComponent(name) + '&path=' + encodeURIComponent(path) +
+              '&fileSize=' + size
+      }).then(function(r){return r.json();});
     }
 
     async function uploadFile(file, uploadPath) {
@@ -198,15 +207,18 @@
           });
           completed++;
           updateProgress(completed / total * 100);
-        } catch(e) { hideProgress(); alert('{{t "upFile"}} {{t "fl"}}：' + e.message); return; }
+        } catch(e) { hideProgress(); showToast('{{t "upFile"}} {{t "fl"}}：' + e.message, true); return; }
       }
       updateProgress(100);
       try {
-        var ok = await mergeChunks(fileId, total, file.name, uploadPath);
+        var d = await mergeChunks(fileId, total, file.name, uploadPath, file.size);
         hideProgress();
-        if (ok) { if (confirm('{{t "upFile"}} {{t "sc"}}')) location.reload(); }
-        else    { alert('{{t "upFile"}} {{t "fl"}}'); }
-      } catch(e) { hideProgress(); alert('{{t "reqFail"}}'); }
+        if (d.stat) {
+          showToast(d.skipped ? '{{t "upFile"}} {{t "skip"}}' : '{{t "upFile"}} {{t "sc"}}', d.skipped);
+          if (!d.skipped) setTimeout(function(){ location.reload(); }, 800);
+          else setTimeout(function(){ location.reload(); }, 1800);
+        } else { showToast('{{t "upFile"}} {{t "fl"}}', true); }
+      } catch(e) { hideProgress(); showToast('{{t "reqFail"}}', true); }
     }
 
     var dz = document.getElementById('dropZone');
